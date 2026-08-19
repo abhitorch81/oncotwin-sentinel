@@ -22,8 +22,27 @@ def test_health():
     assert payload["ui_version"] == "12.0.0"
     assert payload["edition"] == "agentic-multimodal"
     assert payload["medical_use"] == "synthetic_research_only"
+    assert payload["bigquery_dataset"] == "oncotwin_agentic"
     assert payload["mutations_enabled"] is False
     assert payload["human_approval_required"] is True
+    assert payload["mutation_policy"]["fail_closed"] is True
+    assert payload["mutation_policy"]["external_mutations_allowed"] is False
+
+
+def test_judge_facing_mutation_policy_is_fail_closed():
+    response = client.get("/api/security/mutation-policy")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["fail_closed"] is True
+    assert payload["external_mutations_allowed"] is False
+    assert payload["dataset_scope"] == "oncotwin_agentic"
+    assert payload["voice_approval_allowed"] is False
+    assert set(payload["protected_surfaces"]) == {
+        "BigQuery SQL",
+        "DataHub GraphQL",
+        "DataHub REST emitter",
+        "DataHub MCP mutation tools",
+    }
 
 
 def test_launch_flow_guide_explains_the_real_agentic_memory_path():
@@ -103,6 +122,8 @@ def test_datahub_capability_proof():
     assert response.status_code == 200
     payload = response.json()
     assert "list_schema_fields" in payload["mcp"]["read_tools"]
+    assert payload["mcp"]["mutation_tools"] == []
+    assert payload["mcp"]["policy"]["external_mutations_allowed"] is False
     assert "datahub-lineage" in payload["skills"]
     assert "deterministic" in payload["agent_context_kit"]["llm"]
 
@@ -118,6 +139,7 @@ def test_judge_proof_endpoint_exposes_auditable_read_only_evidence():
     assert payload["mutation_performed"] is False
     assert payload["human_approval_boundary"] is True
     assert "urn:li:dataPlatform:bigquery" in payload["asset_urn"]
+    assert ".oncotwin_agentic.progression_features" in payload["asset_urn"]
     assert [item["tool"] for item in payload["evidence"]] == [
         "search",
         "get_entities",
@@ -308,7 +330,7 @@ def test_incident_resolution_is_guarded_even_in_demo():
         "/api/governance/resolve-incident",
         json={
             "incident_urn": "urn:li:incident:test",
-            "asset_urn": "urn:li:dataset:(urn:li:dataPlatform:bigquery,oncotwin.progression_features,PROD)",
+            "asset_urn": "urn:li:dataset:(urn:li:dataPlatform:bigquery,project-test.oncotwin_agentic.progression_features,PROD)",
             "approval_secret": "wrong",
         },
     )

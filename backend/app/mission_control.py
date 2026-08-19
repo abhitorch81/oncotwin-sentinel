@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from .config import Settings
-from .condition_registry import condition, dataset_urn
+from .condition_registry import condition
+from .data_scope import governed_dataset_urn
 from .datahub_graphql import DataHubGraphQL
-from .governed_repair import GovernedFeatureRepair
 from .mcp_client import DataHubMCP
 from .rl_simulation import MISSION_CASES, SafetyQLearner, TwinState, simulate_transition
 
@@ -61,7 +61,11 @@ class MissionManager:
             return {
                 "source": "deterministic-demo",
                 "tools": case["datahub"],
-                "asset_urn": dataset_urn(self.settings.google_cloud_project or "oncotwin-demo", case_id),
+                "asset_urn": governed_dataset_urn(
+                    self.settings,
+                    self.settings.google_cloud_project or "oncotwin-demo",
+                    case_id,
+                ),
                 "asset_name": context_spec["asset_name"],
                 "owner": context_spec["owner"],
                 "tags": context_spec["tags"],
@@ -71,7 +75,7 @@ class MissionManager:
             }
         project = self.settings.google_cloud_project or "oncotwin"
         asset_name = context_spec["asset_name"]
-        urn = dataset_urn(project, case_id)
+        urn = governed_dataset_urn(self.settings, project, case_id)
         calls: list[tuple[str, dict[str, Any]]] = [
             ("search", {"query": asset_name}),
             ("get_entities", {"urns": [urn]}),
@@ -115,32 +119,29 @@ class MissionManager:
             self._event(mission, "datahub_context", agent="Context Scout", tool="DataHub MCP", scene_cue="catalog-scan", summary=f"Grounded {context['asset_name']} in canonical identity, schema, ownership, contract and lineage context.", evidence=context, twin=initial.public())
             await asyncio.sleep(0.08)
             failure_evidence: dict[str, Any] = {"source": "digital-twin-telemetry"}
+            failure_tool = "Digital twin telemetry"
             if not self.settings.demo_mode and case_id == "feature_quality":
-                # An automated quality detector may publish a failing signal and
-                # open an incident. The repair itself remains approval-gated.
-                signal = await GovernedFeatureRepair(self.settings).record_failure_signal(mission["mission_id"])
+                # Mission start is read-only. It may observe an existing DataHub
+                # incident, but it cannot create signals or incidents before a
+                # human authorizes the governed mutation phase.
                 client = DataHubGraphQL(self.settings)
-                title = f"OncoTwin V11 · {case['title']}"
+                title = f"OncoTwin Sentinel V12 · {case['title']}"
                 active = await client.active_incidents(context["asset_urn"])
                 incidents = (((active.get("dataset") or {}).get("incidents") or {}).get("incidents")) or []
                 matching = [item for item in incidents if item.get("incidentType") == "CUSTOM" and item.get("title") == title]
-                incident_urn = matching[0].get("urn") if matching else await client.raise_incident(
-                    context["asset_urn"],
-                    title,
-                    "Automated OncoTwin completeness detector reported a failing biomarker-feature contract. Downstream ML consumption is blocked pending human-approved repair.",
-                    custom_type="ML_FEATURE_QUALITY",
-                )
-                if not incident_urn:
-                    raise RuntimeError("DataHub did not return an incident URN")
-                mission["incident_urn"] = incident_urn
+                incident_urn = matching[0].get("urn") if matching else None
+                if incident_urn:
+                    mission["incident_urn"] = incident_urn
                 failure_evidence = {
-                    "source": "bigquery-quality-signal+datahub-incident",
-                    "quality_job_id": signal["job_id"],
+                    "source": "datahub-active-incident" if incident_urn else "live-read-only-quality-observation",
                     "incident_urn": incident_urn,
                     "asset_urn": context["asset_urn"],
-                    "incident_state": "ACTIVE",
+                    "incident_state": "ACTIVE" if incident_urn else "NOT_CREATED",
+                    "external_writes": 0,
+                    "mutation_policy": "blocked_pending_human_approval",
                 }
-            self._event(mission, "failure_observed", agent="Quality Sentinel", tool="BigQuery quality signal + DataHub incident", scene_cue="quality-warning", status="warning", summary=case["failure"], evidence=failure_evidence, twin=initial.public())
+                failure_tool = "DataHub active-incident query + digital-twin telemetry"
+            self._event(mission, "failure_observed", agent="Quality Sentinel", tool=failure_tool, scene_cue="quality-warning", status="warning", summary=case["failure"], evidence=failure_evidence, twin=initial.public())
             await asyncio.sleep(0.08)
             lineage_evidence = {
                 "path": ["gene_expression_summary", "progression_features", "progression_scores"],

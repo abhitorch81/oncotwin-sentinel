@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # that Gemini CLI can hit when a preview/default model is not in one region.
     google_cloud_location: str = "global"
     bigquery_location: str = "asia-south1"
+    bigquery_dataset: str = "oncotwin_agentic"
     google_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
 

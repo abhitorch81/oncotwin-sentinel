@@ -12,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 
 from .agent_workflow import CancerContextMission
 from .config import get_settings
-from .condition_registry import CONDITION_REGISTRY, condition, dataset_urn
+from .condition_registry import CONDITION_REGISTRY, condition
+from .data_scope import governed_dataset_urn
 from .datahub_graphql import DataHubGraphQL
 from .demo_data import DEMO_COHORTS, DEMO_SCATTER, DEMO_TWIN
 from .governed_repair import DataHubKnowledgeWriteback, GovernedFeatureRepair
@@ -22,6 +23,13 @@ from .evolution_routes import router as evolution_router
 from .cockroach_ops_routes import router as cockroach_ops_router
 from .mcp_client import DataHubMCP
 from .models import AgentRunRequest, GenericMCPRequest, IncidentResolutionRequest, MissionApprovalRequest, MissionStartRequest, WritebackCommitRequest
+from .mutation_policy import (
+    MutationPolicyError,
+    approval_secret_matches,
+    is_mutation_operation,
+    mutation_policy_snapshot,
+    require_external_mutation,
+)
 from .rl_simulation import mission_catalog
 
 settings = get_settings()
@@ -51,6 +59,24 @@ app.include_router(evolution_router)
 app.include_router(cockroach_ops_router)
 
 
+def authorize_external_mutation(operation: str, approval_secret: str | None) -> None:
+    try:
+        require_external_mutation(
+            settings,
+            operation=operation,
+            approval_secret=approval_secret,
+        )
+    except MutationPolicyError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "external_mutation_blocked",
+                "operation": exc.operation,
+                "reason": exc.reason,
+            },
+        ) from exc
+
+
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(frontend_dir / "index.html")
@@ -67,8 +93,28 @@ async def health() -> dict[str, Any]:
         "medical_use": settings.medical_use,
         "datahub_gms_url": settings.datahub_gms_url,
         "analytics_agent_url": settings.analytics_agent_url,
+        "bigquery_dataset": settings.bigquery_dataset,
         "mutations_enabled": settings.tools_is_mutation_enabled,
         "human_approval_required": settings.human_approval_required,
+        "mutation_policy": mutation_policy_snapshot(settings),
+    }
+
+
+@app.get("/api/security/mutation-policy")
+async def mutation_policy() -> dict[str, Any]:
+    """Judge-facing, secret-free proof of the fail-closed write boundary."""
+    return {
+        **mutation_policy_snapshot(settings),
+        "dataset_scope": settings.bigquery_dataset,
+        "protected_surfaces": [
+            "BigQuery SQL",
+            "DataHub GraphQL",
+            "DataHub REST emitter",
+            "DataHub MCP mutation tools",
+        ],
+        "approval_channel": "visible human approval action",
+        "voice_approval_allowed": False,
+        "research_only": True,
     }
 
 
@@ -92,7 +138,12 @@ async def cohorts() -> list[dict[str, Any]]:
 @app.get("/api/mcp/tools")
 async def mcp_tools() -> dict[str, Any]:
     if settings.demo_mode:
-        return {"mode": "demo", "tools": ["search", "get_entities", "get_lineage", "update_description", "save_document"]}
+        return {
+            "mode": "demo",
+            "tools": ["search", "get_entities", "get_lineage"],
+            "simulated_mutation_tools": ["update_description", "save_document"],
+            "mutation_policy": mutation_policy_snapshot(settings),
+        }
     tools = await DataHubMCP(settings).list_tools()
     return {"mode": "live", "tools": tools}
 
@@ -106,8 +157,9 @@ async def datahub_capabilities() -> dict[str, Any]:
             "transport": "stdio/self-hosted",
             "server": settings.datahub_mcp_package,
             "read_tools": ["search", "get_entities", "list_schema_fields", "get_lineage", "get_dataset_queries"],
-            "mutation_tools": ["update_description"],
+            "mutation_tools": ["update_description"] if settings.tools_is_mutation_enabled and not settings.demo_mode else [],
             "human_approval_required": settings.human_approval_required,
+            "policy": mutation_policy_snapshot(settings),
         },
         "skills": ["datahub-search", "datahub-quality", "datahub-lineage", "datahub-enrich"],
         "agent_context_kit": {"framework": "LangChain", "llm": "optional narrator; core decisions are deterministic"},
@@ -125,7 +177,7 @@ async def datahub_proof(case_id: str = "feature_quality") -> dict[str, Any]:
         raise HTTPException(404, f"Unknown cancer-context condition: {case_id}")
     project = settings.google_cloud_project or "oncotwin-demo"
     spec = condition(case_id)
-    asset_urn = dataset_urn(project, case_id)
+    asset_urn = governed_dataset_urn(settings, project, case_id)
     captured_at = datetime.now(timezone.utc).isoformat()
     if settings.demo_mode:
         evidence = [
@@ -199,7 +251,7 @@ async def datahub_proof(case_id: str = "feature_quality") -> dict[str, Any]:
         "mutation_performed": False,
         "human_approval_boundary": True,
         "evidence": evidence,
-        "challenge_coverage": ["Agents That Do Real Work", "Production ML Agents", "Metadata-Aware Code Generation", "Open / Wildcard"],
+        "challenge_coverage": ["The Fortified Enterprise Fleet", "Best Multimodal UX", "Best Architectural Design"],
     }
 
 
@@ -215,7 +267,7 @@ async def datahub_observatory(case_id: str = "feature_quality") -> dict[str, Any
     project = settings.google_cloud_project or "oncotwin-demo"
 
     def dataset(name: str) -> str:
-        return f"urn:li:dataset:(urn:li:dataPlatform:bigquery,{project}.oncotwin.{name},PROD)"
+        return f"urn:li:dataset:(urn:li:dataPlatform:bigquery,{project}.{settings.bigquery_dataset}.{name},PROD)"
 
     nodes = [
         {"id": "cell_clusters", "label": "cell_clusters", "kind": "cataloged dataset", "urn": dataset("cell_clusters"), "layer": 0, "evidence": "MCP search"},
@@ -224,7 +276,7 @@ async def datahub_observatory(case_id: str = "feature_quality") -> dict[str, Any
         {"id": "progression_features", "label": "progression_features", "kind": "cataloged feature table", "urn": dataset("progression_features"), "layer": 2, "evidence": "MCP schema + lineage"},
         {"id": "progression_scores", "label": "progression_scores", "kind": "cataloged score table", "urn": dataset("progression_scores"), "layer": 3, "evidence": "MCP downstream lineage"},
         {"id": "vertex_model", "label": "OncoTwin model", "kind": "conceptual ML consumer", "urn": "vertex-ai://oncotwin-progression", "layer": 4, "evidence": "downstream impact projection"},
-        {"id": "cloud_run", "label": "Mission Control", "kind": "conceptual deployment", "urn": "cloud-run://oncotwin-mission-control", "layer": 5, "evidence": "application boundary"},
+        {"id": "cloud_run", "label": "Sentinel Agent API", "kind": "conceptual deployment", "urn": "cloud-run://oncotwin-agentic-api", "layer": 5, "evidence": "application boundary"},
         {"id": "tumour_states", "label": "tumour_state_transitions", "kind": "cataloged state-transition table", "urn": dataset("tumour_state_transitions"), "layer": 2, "evidence": "MCP schema + query lineage"},
         {"id": "drift_metrics", "label": "cohort_drift_metrics", "kind": "cataloged model-monitoring table", "urn": dataset("cohort_drift_metrics"), "layer": 3, "evidence": "MCP schema + query lineage"},
         {"id": "schema_events", "label": "genomic_schema_contract_events", "kind": "cataloged contract-event table", "urn": dataset("genomic_schema_contract_events"), "layer": 2, "evidence": "MCP schema + query lineage"},
@@ -267,6 +319,7 @@ async def datahub_observatory(case_id: str = "feature_quality") -> dict[str, Any
             "simulated": "incident propagation, RL action, protein-state and spatial counterfactual playback",
             "catalog_coverage": "12/12 canonical DataHub assets",
             "selected_condition": case_id,
+            "bigquery_dataset": settings.bigquery_dataset,
             "writes": 0,
         },
     }
@@ -320,22 +373,23 @@ async def mission_events(mission_id: str) -> StreamingResponse:
 
 @app.post("/api/missions/{mission_id}/approve")
 async def approve_mission(mission_id: str, request: MissionApprovalRequest) -> dict[str, Any]:
-    if request.approval_secret != settings.writeback_approval_secret:
+    if not approval_secret_matches(settings, request.approval_secret):
         raise HTTPException(403, "Approval secret is invalid.")
     mission = mission_manager.missions.get(mission_id)
     if mission is None:
         raise HTTPException(404, "Mission not found.")
     governance_evidence: dict[str, Any] | None = None
-    # Every V11 mission has a dedicated DataHub dataset. Feature quality performs
+    # Every Sentinel mission has a dedicated DataHub dataset. Feature quality performs
     # the complete live repair/writeback path; the remaining research simulations
     # retain the narrower condition-incident lifecycle.
     if not settings.demo_mode:
+        authorize_external_mutation("mission_approval", request.approval_secret)
         if not settings.datahub_admin_token:
             raise HTTPException(503, "DATAHUB_ADMIN_TOKEN is required for live incident resolution.")
         project = settings.google_cloud_project
         spec = condition(mission["case_id"])
-        asset_urn = dataset_urn(project, mission["case_id"])
-        incident_title = f"OncoTwin V11 · {spec['title']}"
+        asset_urn = governed_dataset_urn(settings, project, mission["case_id"])
+        incident_title = f"OncoTwin Sentinel V12 · {spec['title']}"
         client = DataHubGraphQL(settings)
         before = await client.active_incidents(asset_urn)
         incident_list = (((before.get("dataset") or {}).get("incidents") or {}).get("incidents")) or []
@@ -347,6 +401,7 @@ async def approve_mission(mission_id: str, request: MissionApprovalRequest) -> d
                 asset_urn,
                 incident_title,
                 f"Approved OncoTwin research simulation checkpoint for {spec['asset_name']}. Contract: {spec['contract']}",
+                approval_secret=request.approval_secret,
             )
             refreshed = await client.active_incidents(asset_urn)
             incident_list = (((refreshed.get("dataset") or {}).get("incidents") or {}).get("incidents")) or []
@@ -358,7 +413,10 @@ async def approve_mission(mission_id: str, request: MissionApprovalRequest) -> d
 
         if mission["case_id"] == "feature_quality":
             governed_repair = GovernedFeatureRepair(settings)
-            repair_evidence = await governed_repair.execute(mission_id)
+            repair_evidence = await governed_repair.execute(
+                mission_id,
+                approval_secret=request.approval_secret,
+            )
             validation_evidence = await governed_repair.validate(mission_id)
             if not validation_evidence.get("passed"):
                 raise HTTPException(502, "Quality validation failed; the DataHub incident remains active and model consumption stays blocked.")
@@ -369,6 +427,7 @@ async def approve_mission(mission_id: str, request: MissionApprovalRequest) -> d
             if incident_urn and await client.resolve_incident(
                 incident_urn,
                 "OncoTwin Governance Steward approved resolution after condition-specific schema, contract and lineage verification.",
+                approval_secret=request.approval_secret,
             ):
                 resolved_urns.append(incident_urn)
 
@@ -383,6 +442,7 @@ async def approve_mission(mission_id: str, request: MissionApprovalRequest) -> d
                 incident_urn=resolved_incident,
                 repair=repair_evidence or {},
                 validation=validation_evidence or {},
+                approval_secret=request.approval_secret,
             )
             verification_read = await DataHubMCP(settings).call("get_entities", {"urns": [asset_urn]})
         after = await client.active_incidents(asset_urn)
@@ -426,14 +486,19 @@ async def replay_mission(mission_id: str) -> dict[str, Any]:
 
 @app.post("/api/governance/resolve-incident")
 async def resolve_incident(request: IncidentResolutionRequest) -> dict[str, Any]:
-    if request.approval_secret != settings.writeback_approval_secret:
+    if not approval_secret_matches(settings, request.approval_secret):
         raise HTTPException(403, "Approval secret is invalid.")
     if settings.demo_mode:
         return {"mode": "demo", "resolved": True, "active_incidents": 0, "asset_urn": request.asset_urn}
+    authorize_external_mutation("resolve_incident", request.approval_secret)
     if not settings.datahub_admin_token:
         raise HTTPException(503, "DATAHUB_ADMIN_TOKEN is required for incident resolution.")
     client = DataHubGraphQL(settings)
-    resolved = await client.resolve_incident(request.incident_urn, request.message)
+    resolved = await client.resolve_incident(
+        request.incident_urn,
+        request.message,
+        approval_secret=request.approval_secret,
+    )
     active = await client.active_incidents(request.asset_urn)
     total = (((active.get("dataset") or {}).get("incidents") or {}).get("total"))
     return {"mode": "live", "resolved": resolved, "active_incidents": total, "asset_urn": request.asset_urn}
@@ -441,12 +506,19 @@ async def resolve_incident(request: IncidentResolutionRequest) -> dict[str, Any]
 
 @app.post("/api/mcp/call")
 async def mcp_call(request: GenericMCPRequest, x_admin_secret: str | None = Header(default=None)) -> dict[str, Any]:
-    if request.tool.startswith(("add_", "remove_", "set_", "update_", "save_", "create_")):
-        if x_admin_secret != settings.writeback_approval_secret:
+    mutation_requested = is_mutation_operation(request.tool)
+    if mutation_requested:
+        if not approval_secret_matches(settings, x_admin_secret):
             raise HTTPException(403, "Mutation tools require the approval secret.")
     if settings.demo_mode:
         return {"mode": "demo", "tool": request.tool, "arguments": request.arguments, "content": "Simulated MCP result"}
-    return await DataHubMCP(settings).call(request.tool, request.arguments)
+    if mutation_requested:
+        authorize_external_mutation(f"datahub_mcp:{request.tool}", x_admin_secret)
+    return await DataHubMCP(settings).call(
+        request.tool,
+        request.arguments,
+        approval_secret=x_admin_secret,
+    )
 
 
 @app.post("/api/agents/run")
@@ -458,14 +530,20 @@ async def run_agents(request: AgentRunRequest) -> dict[str, Any]:
 
 @app.post("/api/writeback/commit")
 async def commit_writeback(request: WritebackCommitRequest) -> dict[str, Any]:
-    if request.approval_secret != settings.writeback_approval_secret:
+    if not approval_secret_matches(settings, request.approval_secret):
         raise HTTPException(403, "Approval secret is invalid.")
+    if not settings.demo_mode:
+        authorize_external_mutation("writeback_commit", request.approval_secret)
     proposal = proposals.pop(request.proposal_id, None)
     if proposal is None:
         raise HTTPException(404, "Proposal not found or already consumed.")
     if settings.demo_mode:
         return {"mode": "demo", "committed": True, "proposal": proposal}
-    result = await DataHubMCP(settings).call(proposal["tool"], proposal["arguments"])
+    result = await DataHubMCP(settings).call(
+        proposal["tool"],
+        proposal["arguments"],
+        approval_secret=request.approval_secret,
+    )
     if result.get("is_error"):
         raise HTTPException(502, detail=result)
     return {"mode": "live", "committed": True, "result": result}

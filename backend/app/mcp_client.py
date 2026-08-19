@@ -8,6 +8,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from .config import Settings
+from .mutation_policy import is_mutation_operation, require_external_mutation
 
 
 class DataHubMCP:
@@ -51,19 +52,43 @@ class DataHubMCP:
                 for tool in result.tools
             ]
 
-    async def call(self, tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    async def call(
+        self,
+        tool: str,
+        arguments: dict[str, Any],
+        *,
+        approval_secret: str | None = None,
+    ) -> dict[str, Any]:
+        if is_mutation_operation(tool):
+            require_external_mutation(
+                self.settings,
+                operation=f"datahub_mcp:{tool}",
+                approval_secret=approval_secret,
+            )
         started = time.perf_counter()
         async with self.session() as session:
             result = await session.call_tool(tool, arguments)
         return self._result(tool, result, started)
 
-    async def call_many(self, calls: list[tuple[str, dict[str, Any]]]) -> list[dict[str, Any]]:
+    async def call_many(
+        self,
+        calls: list[tuple[str, dict[str, Any]]],
+        *,
+        approval_secret: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Run a grounded evidence bundle through one MCP server session.
 
         Reusing the process matters on Cloud Run: search, schema, lineage and
         query inspection arrive as one auditable mission without paying the
         self-hosted MCP startup cost for every tool.
         """
+        for tool, _ in calls:
+            if is_mutation_operation(tool):
+                require_external_mutation(
+                    self.settings,
+                    operation=f"datahub_mcp:{tool}",
+                    approval_secret=approval_secret,
+                )
         results: list[dict[str, Any]] = []
         async with self.session() as session:
             for tool, arguments in calls:

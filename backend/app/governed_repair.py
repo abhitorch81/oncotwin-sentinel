@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,12 +20,13 @@ from google.cloud import bigquery
 
 from .condition_registry import condition
 from .config import Settings
+from .mutation_policy import require_external_mutation
 
 
 class GovernedFeatureRepair:
     """Approval-gated repair for the synthetic OncoTwin feature product.
 
-    The workflow modifies only the hackathon-owned ``oncotwin`` BigQuery
+    The workflow modifies only the hackathon-owned ``oncotwin_agentic`` BigQuery
     dataset and its corresponding DataHub metadata. It never handles clinical
     or patient-identifying data.
     """
@@ -33,18 +35,44 @@ class GovernedFeatureRepair:
         self.settings = settings
         self.project = settings.google_cloud_project
         self.location = settings.bigquery_location
-        self.dataset = f"{self.project}.oncotwin"
+        self.dataset = f"{self.project}.{settings.bigquery_dataset}"
 
-    async def record_failure_signal(self, mission_id: str) -> dict[str, Any]:
+    async def record_failure_signal(
+        self,
+        mission_id: str,
+        *,
+        approval_secret: str | None,
+    ) -> dict[str, Any]:
+        require_external_mutation(
+            self.settings,
+            operation="bigquery_record_failure_signal",
+            approval_secret=approval_secret,
+        )
         sql = f"""
         INSERT INTO `{self.dataset}.quality_events`
           (asset, check_name, status, score, checked_at)
         VALUES
           ('progression_features', 'completeness', 'FAIL', 0.82, CURRENT_TIMESTAMP())
         """
-        return await asyncio.to_thread(self._query, sql, "failure-signal", mission_id)
+        return await asyncio.to_thread(
+            self._query,
+            sql,
+            "failure-signal",
+            mission_id,
+            approval_secret,
+        )
 
-    async def execute(self, mission_id: str) -> dict[str, Any]:
+    async def execute(
+        self,
+        mission_id: str,
+        *,
+        approval_secret: str | None,
+    ) -> dict[str, Any]:
+        require_external_mutation(
+            self.settings,
+            operation="bigquery_execute_governed_repair",
+            approval_secret=approval_secret,
+        )
         sql = f"""
         CREATE OR REPLACE TABLE `{self.dataset}.progression_features` AS
         SELECT
@@ -73,7 +101,7 @@ class GovernedFeatureRepair:
             + 0.035 * mesenchymal_signal,
             2
           )) AS progression_score,
-          'oncotwin-v10-governed-repair' AS model_version,
+          'oncotwin-sentinel-v12-governed-repair' AS model_version,
           CURRENT_TIMESTAMP() AS predicted_at
         FROM `{self.dataset}.progression_features`;
 
@@ -82,7 +110,13 @@ class GovernedFeatureRepair:
         VALUES
           ('progression_features', 'completeness', 'PASS', 1.00, CURRENT_TIMESTAMP());
         """
-        return await asyncio.to_thread(self._query, sql, "repair", mission_id)
+        return await asyncio.to_thread(
+            self._query,
+            sql,
+            "repair",
+            mission_id,
+            approval_secret,
+        )
 
     async def validate(self, mission_id: str) -> dict[str, Any]:
         sql = f"""
@@ -93,14 +127,14 @@ class GovernedFeatureRepair:
             OR epithelial_signal IS NULL
             OR mesenchymal_signal IS NULL
           ) AS rows_with_null_signals,
-          COUNTIF(model_version = 'oncotwin-v10-governed-repair') AS regenerated_scores
+          COUNTIF(model_version = 'oncotwin-sentinel-v12-governed-repair') AS regenerated_scores
         FROM `{self.dataset}.progression_features` AS features
         CROSS JOIN (
           SELECT ARRAY_AGG(model_version LIMIT 1)[OFFSET(0)] AS model_version
           FROM `{self.dataset}.progression_scores`
         ) AS scores
         """
-        result = await asyncio.to_thread(self._query, sql, "validation", mission_id)
+        result = await asyncio.to_thread(self._query, sql, "validation", mission_id, None)
         row = result["rows"][0] if result["rows"] else {}
         result["passed"] = (
             int(row.get("total_rows", 0)) > 0
@@ -109,10 +143,26 @@ class GovernedFeatureRepair:
         )
         return result
 
-    def _query(self, sql: str, phase: str, mission_id: str) -> dict[str, Any]:
+    def _query(
+        self,
+        sql: str,
+        phase: str,
+        mission_id: str,
+        approval_secret: str | None,
+    ) -> dict[str, Any]:
+        if re.search(
+            r"\b(ALTER|CREATE|DELETE|DROP|INSERT|MERGE|TRUNCATE|UPDATE)\b",
+            sql,
+            flags=re.IGNORECASE,
+        ):
+            require_external_mutation(
+                self.settings,
+                operation=f"bigquery_sql:{phase}",
+                approval_secret=approval_secret,
+            )
         client = bigquery.Client(project=self.project)
         job_config = bigquery.QueryJobConfig(
-            labels={"app": "oncotwin", "mission": mission_id.lower(), "phase": phase}
+            labels={"app": "oncotwin_sentinel", "mission": mission_id.lower(), "phase": phase}
         )
         job = client.query(sql, location=self.location, job_config=job_config)
         rows = [dict(row.items()) for row in job.result()]
@@ -141,7 +191,13 @@ class DataHubKnowledgeWriteback:
         incident_urn: str,
         repair: dict[str, Any],
         validation: dict[str, Any],
+        approval_secret: str | None,
     ) -> dict[str, Any]:
+        require_external_mutation(
+            self.settings,
+            operation="datahub_knowledge_writeback",
+            approval_secret=approval_secret,
+        )
         return await asyncio.to_thread(
             self._write,
             asset_urn,
@@ -150,6 +206,7 @@ class DataHubKnowledgeWriteback:
             incident_urn,
             repair,
             validation,
+            approval_secret,
         )
 
     def _write(
@@ -160,7 +217,13 @@ class DataHubKnowledgeWriteback:
         incident_urn: str,
         repair: dict[str, Any],
         validation: dict[str, Any],
+        approval_secret: str | None,
     ) -> dict[str, Any]:
+        require_external_mutation(
+            self.settings,
+            operation="datahub_knowledge_writeback",
+            approval_secret=approval_secret,
+        )
         spec = condition(case_id)
         repaired_at = datetime.now(timezone.utc).isoformat()
         validation_row = validation["rows"][0]
