@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "reviewing-cluster-health": {
+      "source": "cockroachlabs/cockroachdb-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cockroachdb-operations-and-lifecycle/reviewing-cluster-health/SKILL.md",
+      "computedHash": "8eda708888a73d0ee5ee44d107730c0537906107110b96fe85a6c1dde0e82807"
+    }
+  }
+}

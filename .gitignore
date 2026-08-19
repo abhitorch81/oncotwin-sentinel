@@ -1,0 +1,68 @@
+.env
+.env.*
+!.env.example
+.venv/
+.test-venv/
+.ingestion-venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+.DS_Store
+service-account*.json
+*.pem
+*.key
+*.p12
+*.log
+ONCOTWIN_*_PROOF.txt
+proof-*.json
+gcloud-debug.log
+.env.memorymesh.local
+.*-backup-*/
+backend.before-v*/
+frontend.before-v*/
+*.zip
+.venv*/
+oncotwin_add_*.py
+oncotwin_switch_to_fastembed.py
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+service-account*.json
+
+# Python
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# JavaScript
+node_modules/
+dist/
+build/
+
+
+
+# Local tools
+.DS_Store
+.gcloud/
+
+# Historical backups retained in original project
+.cockroach-backup-*/
+.lambda-gemini-backup-*/
+backend.before-v11*/
+frontend.before-v11*/
+
+# Generated archives
+*.zip
+
+# Local agent workspace
+.agents/

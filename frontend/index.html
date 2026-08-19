@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OncoTwin V11.4 — persistent cancer evolution memory with a verifiable CockroachDB operations agent" />
+  <title>OncoTwin V11.4 · CockroachDB Operations Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css?v=11.4.1" />
+  <link rel="stylesheet" href="/assets/evolution.css?v=11.3.0" />
+  <link rel="stylesheet" href="/assets/helix.css?v=11.3.0" />
+  <link rel="stylesheet" href="/assets/cockroach_ops.css?v=11.4.0" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">⌬</span>
+        <div><strong>OncoTwin <em>V11.4</em></strong><small>COCKROACHDB AGENTIC MEMORY · EVIDENCE, OPERATIONS AND EVOLUTION</small></div>
+    </div>
+    <nav class="view-tabs" aria-label="Application views">
+      <button class="tab active" data-view="mission">Live Mission</button>
+      <button class="tab" data-view="twin">Decision Forge</button>
+      <button class="tab" data-view="evolution">Evolution Lab</button>
+      <button class="tab" data-view="helix">Genome Helix</button>
+      <button class="tab" data-view="memory">Persistent Memory</button>
+      <button class="tab" data-view="proof">Proof Galaxy</button>
+      <button class="tab" data-view="ops">CRDB Ops</button>
+    </nav>
+    <div class="header-actions"><button id="openFlowGuide" class="flow-guide-trigger" type="button">◎ How it works</button><span id="modeBadge" class="datahub-badge">◉ DataHub connecting</span></div>
+  </header>
+
+  <div class="challenge-ribbon">
+    <b>BUILT ON COCKROACHDB</b><span>PERSISTENT AGENT MEMORY</span><i>+</i><span>OFFICIAL MCP + CCLOUD</span><i>+</i><span>AWS LAMBDA VECTORS</span>
+  </div>
+
+  <div id="flowGuide" class="flow-guide" hidden>
+    <div class="flow-guide-backdrop" data-flow-close></div>
+    <section class="flow-guide-card" role="dialog" aria-modal="true" aria-labelledby="flowGuideTitle" aria-describedby="flowGuideDescription">
+      <header class="flow-guide-header">
+        <div><span>INTERACTIVE SYSTEM WALKTHROUGH</span><strong>Follow one signal through OncoTwin</strong></div>
+        <button id="flowGuideClose" type="button" aria-label="Close walkthrough">×</button>
+      </header>
+      <div id="flowGuideMap" class="flow-guide-map" aria-label="OncoTwin agentic memory flow"></div>
+      <div class="flow-guide-body">
+        <div class="flow-guide-visual" aria-hidden="true">
+          <div class="flow-guide-orbit orbit-one"></div><div class="flow-guide-orbit orbit-two"></div>
+          <div id="flowGuideGlyph" class="flow-guide-glyph">01</div>
+          <span class="flow-particle particle-one"></span><span class="flow-particle particle-two"></span><span class="flow-particle particle-three"></span>
+        </div>
+        <div class="flow-guide-copy">
+          <div class="flow-guide-meta"><span id="flowGuideStep">STEP 1 OF 6</span><em id="flowGuideView">LIVE MISSION</em></div>
+          <p id="flowGuideKicker" class="flow-guide-kicker">A governed signal enters</p>
+          <h2 id="flowGuideTitle">Observe before the agents act.</h2>
+          <p id="flowGuideDescription">OncoTwin begins with a synthetic research incident and DataHub-grounded context—not an unverified clinical claim.</p>
+          <div id="flowGuideEvidence" class="flow-guide-evidence"></div>
+        </div>
+      </div>
+      <footer class="flow-guide-footer">
+        <button id="flowGuideSkip" class="flow-guide-skip" type="button">Explore on my own</button>
+        <div class="flow-guide-actions"><button id="flowGuideBack" type="button">← Back</button><button id="flowGuideNext" type="button">Next: recall memory →</button></div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="app-shell">
+    <aside class="cohort-rail rail-panel">
+      <div class="rail-title"><span>12 DECISION MISSIONS</span><b>LIVE</b></div>
+      <div id="cohortList" class="cohort-list"><div class="rail-loading">Loading cohort context…</div></div>
+      <div class="research-note"><b>♢ &nbsp; Research-only demo</b><p>Public cohort concepts; no patient diagnosis or treatment advice.</p></div>
+    </aside>
+
+    <main class="workspace">
+      <section id="view-mission" class="app-view active">
+        <article class="mission-hero panel">
+          <div><span class="eyebrow">JUDGE MODE · RL DIGITAL TWIN + INTERACTIVE AGENT THEATRE</span><h1>Watch context become <em>safe action.</em></h1><p>Choose a failure, let the RL safety controller observe DataHub-grounded context, then follow every decision through recovery or replay.</p><button id="runMission" class="launch"><span>▷</span> Run selected mission</button></div>
+          <div class="incident-card"><small>◉ ACTIVE INCIDENT</small><strong id="incidentCode">LUAD</strong><b id="incidentText">RNA-seq freshness breach</b><span id="incidentModel">luad_progression_v3</span></div>
+        </article>
+
+        <article class="mission-deck panel">
+          <div class="section-bar"><span>RL DIGITAL TWIN MISSIONS · RESEARCH-ONLY SAFETY SIMULATION</span><div class="mission-mode"><button id="liveMode" class="active">● LIVE</button><button id="replayMission" disabled>▶ VERIFIED REPLAY</button></div></div>
+          <div id="missionCaseGrid" class="mission-case-grid">
+            <button class="mission-case active" data-case="feature_quality"><i>01</i><span><b>Biomarker Completeness Crisis · LIVE WRITE</b><small>Missing biomarker signals → ML safety block</small></span></button>
+            <button class="mission-case" data-case="cancer_progression"><i>02</i><span><b>Tumour-State Progression Surge · LIVE DATAHUB</b><small>Catalog state table → governed review</small></span></button>
+            <button class="mission-case" data-case="model_drift"><i>03</i><span><b>Cancer Cohort Drift · LIVE DATAHUB</b><small>Catalog drift table → retrain gate</small></span></button>
+            <button class="mission-case" data-case="schema_mutation"><i>04</i><span><b>Genomic Schema Mutation · LIVE DATAHUB</b><small>Contract events → generated patch</small></span></button>
+            <button class="mission-case" data-case="biomarker_discordance"><i>05</i><span><b>Multi-omic Biomarker Discordance · LIVE DATAHUB</b><small>Catalog evidence → quarantine gate</small></span></button>
+            <button class="mission-case" data-case="protein_conformation"><i>06</i><span><b>Protein Conformation Evidence Rift · LIVE DATAHUB</b><small>Structure states → provenance gate</small></span></button>
+            <button class="mission-case" data-case="microenvironment_escape"><i>07</i><span><b>Tumour Microenvironment Escape · LIVE DATAHUB</b><small>Spatial states → review gate</small></span></button>
+          </div>
+          <div class="rl-strip">
+            <div><small>RL POLICY</small><b>Q-LEARNING</b></div><div><small>STATE RISK</small><b id="rlRisk">—</b></div><div><small>ACTION</small><b id="rlAction">AWAITING</b></div><div><small>REWARD</small><b id="rlReward">—</b></div><div><small>DATA TRUST</small><b id="rlTrust">—</b></div>
+          </div>
+          <div id="missionTimeline" class="mission-timeline"><span class="empty">Mission events will appear here as GCP + DataHub work is replayed.</span></div>
+        </article>
+
+        <div class="mission-workspace">
+          <article class="agent-theatre panel compact-panel">
+            <div class="section-bar"><span>◉ &nbsp; LIVE CONTEXT GRAPH</span><b id="followState">◎ Auto-following</b></div>
+            <div class="agent-map" id="agentMap">
+              <div class="map-ring r1"></div><div class="map-ring r2"></div><div class="map-cross x"></div><div class="map-cross y"></div>
+              <button class="agent-node node-1 active" data-agent="0"><i>1</i><span><b>Context Scout</b><small>MCP · search</small></span><em></em></button>
+              <button class="agent-node node-2" data-agent="1"><i>2</i><span><b>Lineage Sentinel</b><small>Skill · datahub-lineage</small></span><em></em></button>
+              <button class="agent-node node-3" data-agent="2"><i>3</i><span><b>ML Guardian</b><small>Agent Context Kit</small></span><em></em></button>
+              <button class="agent-node node-4" data-agent="3"><i>4</i><span><b>Bioinformatics Agent</b><small>MCP · schema + context</small></span><em></em></button>
+              <button class="agent-node node-5" data-agent="4"><i>5</i><span><b>Repair Engineer</b><small>Skills · quality + lineage</small></span><em></em></button>
+              <button class="agent-node node-6" data-agent="5"><i>6</i><span><b>Knowledge Steward</b><small>MCP · update_description</small></span><em></em></button>
+              <div id="datahubCore" class="datahub-core"><span>▱</span><strong>DataHub</strong><small><b id="corePercent">18%</b> context</small></div>
+            </div>
+            <div class="theatre-status"><span id="missionStatus">Ready · six agents awaiting incident</span><b id="missionClock">00:00</b></div>
+          </article>
+
+          <article class="inspector panel compact-panel">
+            <div class="section-bar"><span id="inspectorNumber">AGENT INSPECTOR · 01</span><b>◎ READ</b></div>
+            <div class="inspector-body">
+              <h2 id="inspectorName">Context Scout</h2><p id="inspectorPurpose">Replaces guessed table names with stable DataHub URNs.</p>
+              <div class="evidence-block"><small>DATAHUB CAPABILITY</small><strong id="inspectorTool">MCP · search</strong><code id="inspectorQuery">search(query="domain:oncology AND LUAD progression")</code></div>
+              <div class="evidence-block"><small>CONTEXT RETURNED</small><p id="inspectorEvidence">27 governed assets · 4 owners · 3 platforms</p><code id="inspectorUrn">urn:li:dataset:(gdc,TCGA_LUAD_progression,PROD)</code></div>
+              <div id="agentPager" class="agent-pager"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="mission-results">
+          <article class="panel answer-panel"><div class="section-bar"><span>GROUNDED FINDING</span><b id="qualityScore">—/5</b></div><p id="answer">Launch the investigation to produce a DataHub-grounded reliability finding.</p><code id="assetUrn">Awaiting DataHub search…</code></article>
+          <article id="writeback" class="panel writeback-panel"><div class="section-bar"><span>GOVERNED WRITEBACK</span><b id="writebackGate">LOCKED</b></div><p id="proposalText">The Governance Steward cannot mutate DataHub or recover a blocked mission without human approval.</p><div class="approval-row"><input id="approvalSecret" type="password" placeholder="Operator approval secret" autocomplete="off"><button id="approveMission" disabled>Approve mission</button><button id="approveWriteback">Approve metadata</button></div><small id="writebackStatus">Single-use approval · verified replay never writes</small></article>
+        </div>
+      </section>
+
+      <section id="view-twin" class="app-view">
+        <article class="view-intro"><span class="eyebrow">DECISION FORGE · HUMAN-GATED RESEARCH OPERATIONS</span><h1>Do not just predict. <em>Decide responsibly.</em></h1><p>One surface fuses current cancer evidence, distributed memory, agent disagreement and counterfactual actions into an auditable decision.</p></article>
+        <div class="decision-forge">
+          <article class="panel decision-brief"><div class="section-bar"><span>CURRENT DECISION</span><b id="decisionTopic">SELECT A MISSION</b></div><small id="decisionFreshness">EVIDENCE FRESHNESS · —</small><h2 id="decisionTitle">Trial Data Integrity Crisis</h2><p id="decisionQuestion">Can this evidence safely enter the research model?</p><button id="decisionRun" class="launch">▷ Run this decision</button></article>
+          <article class="panel decision-memory"><div class="section-bar"><span>COCKROACHDB MEMORY ECHO</span><b id="decisionMemoryStatus">READY</b></div><p id="decisionMemoryQuery">Select a mission to recall related agent memory.</p><div id="decisionMemoryEcho" class="memory-echo">The forge will search persistent memory by meaning through AWS Lambda + FastEmbed.</div></article>
+          <article class="panel decision-council"><div class="section-bar"><span>AGENT COUNCIL</span><b>3 VOTES</b></div><div id="decisionCouncil" class="council-votes"></div></article>
+          <article class="panel decision-actions"><div class="section-bar"><span>COUNTERFACTUAL ACTIONS</span><b id="decisionMargin">AWAITING RUN</b></div><div id="decisionCounterfactuals" class="counterfactual-grid"><p>Run the mission to compare ACT, MONITOR, BLOCK, REPAIR and ESCALATE.</p></div></article>
+          <article class="panel decision-receipt"><div class="section-bar"><span>IMMUTABLE DECISION RECEIPT</span><b>RESEARCH ONLY</b></div><code id="decisionReceipt">Awaiting Q-policy + evidence receipt…</code><div class="decision-boundary"><span><small>MODEL RISK</small><b id="modelRiskMetric" class="warning">HIGH</b></span><span><small>AUTHORITY</small><b>HUMAN</b></span><span><small>CLINICAL ACTION</small><b>NOT ALLOWED</b></span></div></article>
+        </div>
+      </section>
+
+      <section id="view-evolution" class="app-view">
+        <article class="view-intro evolution-intro"><span class="eyebrow">COCKROACHDB MUTATION EVOLUTION GRAPH · SYNTHETIC RESEARCH ONLY</span><h1>Watch clones emerge. <em>Interrogate every branch.</em></h1><p>The graph is reconstructed from persistent mutation evidence—not invented by the renderer. Five agents hand evidence forward, challenge uncertainty and stop at a human gate.</p></article>
+        <div class="evolution-layout">
+          <article class="panel evolution-stage">
+            <div class="section-bar"><span>INTERACTIVE 3D CLONAL EVOLUTION</span><b id="evolutionRenderer">○ CONNECTING</b></div>
+            <canvas id="evolution3d" aria-label="Interactive mutation evolution graph loaded from CockroachDB"></canvas>
+            <div class="evolution-hud"><small>SELECTED CLONE</small><strong id="evolutionCloneLabel">Loading ONCO-007…</strong><span id="evolutionCloneStats">Persistent graph pending</span><div id="evolutionMutations"></div></div>
+            <div class="evolution-legend"><span><i class="founder"></i>founder</span><span><i class="emerging"></i>emerging</span><span><i class="risk"></i>high risk</span><span><i class="ghost"></i>projected</span></div>
+            <div class="evolution-time"><label>VISIBLE GENERATION <b id="evolutionGeneration">ALL</b></label><input id="evolutionSlider" type="range" min="0" max="3" value="3"><div><span>Founder</span><span>Acquired</span><span>Resistance</span><span>Emerging</span></div></div>
+          </article>
+          <article class="panel evolution-console">
+            <div class="section-bar"><span>TANDEM AGENT COUNCIL</span><b id="evolutionDecision">AWAITING RUN</b></div>
+            <button id="runEvolutionCouncil" class="launch evolution-launch">▷ Generate evolution insights</button>
+            <div id="evolutionAgents" class="evolution-agents"><p>Agents will run in sequence over the CockroachDB graph.</p></div>
+            <div class="evolution-receipts"><div><small>GRAPH RECEIPT</small><code id="evolutionGraphReceipt">—</code></div><div><small>DECISION RECEIPT</small><code id="evolutionDecisionReceipt">—</code></div></div>
+          </article>
+        </div>
+        <article class="panel evolution-projection"><div class="section-bar"><span>COUNTERFACTUAL EVOLUTION · 4 GENERATIONS</span><b>UNCERTAINTY-AWARE</b></div><div id="evolutionProjection" class="evolution-projection-grid"><p>Run the council to generate non-clinical clone trajectories.</p></div><small>Projection is a synthetic research simulation. It does not predict an individual outcome or recommend treatment.</small></article>
+        <article class="panel memory-time-machine">
+          <div class="section-bar"><span>COCKROACHDB MEMORY TIME MACHINE</span><b id="evolutionMemoryStatus">REHYDRATING</b></div>
+          <div class="memory-machine-controls">
+            <button id="playEvolutionMemory" class="outline-action">▶ Replay observations</button>
+            <label>SELECTION PRESSURE<select id="evolutionPressure"><option value="low">Low</option><option value="balanced" selected>Balanced</option><option value="high">High</option></select></label>
+            <button id="generateMemoryPaths" class="launch">⌁ Evolve four remembered paths</button>
+          </div>
+          <div id="evolutionMemoryMetrics" class="evolution-memory-metrics"><div><small>FRAMES</small><b>—</b></div><div><small>TIME SPAN</small><b>—</b></div><div><small>PATHS SAVED</small><b>—</b></div><div><small>DIVERGENCES</small><b>—</b></div></div>
+          <div class="memory-machine-grid">
+            <section><small class="machine-label">OBSERVED HISTORY · CLICK TO REPLAY</small><div id="evolutionFrames" class="evolution-frames"><p>Loading immutable observation frames…</p></div></section>
+            <section><small class="machine-label">MEMORY-CONDITIONED FUTURES · CLICK TO ENTER A PATH</small><div id="evolutionPaths" class="evolution-paths"><p>Generate competing paths to see how remembered evidence changes the future.</p></div></section>
+          </div>
+          <div class="memory-machine-footer"><span id="evolutionMemoryNarrative">Persistent memory is becoming an active input to the agent council.</span><code id="evolutionReplayReceipt">—</code></div>
+        </article>
+      </section>
+
+      <section id="view-helix" class="app-view">
+        <article class="view-intro helix-intro"><span class="eyebrow">GENOME HELIX MEMORY · OBSERVED ↔ FORECAST PAIRING</span><h1>See cancer progression <em>written into the helix.</em></h1><p>Every base-pair rupture is linked to a mutation event, a recalled CockroachDB observation and a competing agent path. Generate the next synthetic observation, preserve it, then watch the helix reorganize.</p></article>
+        <div class="helix-layout">
+          <article class="panel helix-stage">
+            <div class="section-bar"><span>POLYGONAL DNA EVOLUTION ENGINE</span><b id="helixRenderer">○ REHYDRATING MEMORY</b></div>
+            <canvas id="helix3d" aria-label="Interactive DNA helix showing persistent mutation evolution"></canvas>
+            <div class="helix-hud"><small>MEMORY FRAME</small><strong id="helixFrameTitle">Loading ONCO-007 evolution…</strong><span id="helixFrameMeta">CockroachDB observation pending</span><div id="helixHotspotChips"></div></div>
+            <div class="helix-mode"><button class="active" data-helix-mode="observed">Observed</button><button data-helix-mode="paired">Observed ↔ forecast</button><button data-helix-mode="rupture">Mutation rupture</button></div>
+            <div class="helix-legend"><span><i class="normal"></i>stable pair</span><span><i class="driver"></i>driver</span><span><i class="resistance"></i>resistance</span><span><i class="uncertain"></i>uncertain</span></div>
+          </article>
+          <article class="panel helix-command">
+            <div class="section-bar"><span>OBSERVATION GENERATOR</span><b id="helixObservationStatus">RESEARCH ONLY</b></div>
+            <div class="helix-command-body">
+              <label>MEMORY-CONDITIONED PATH<select id="helixScenario"><option value="resistance_sweep">Resistant clone sweep</option><option value="stable_coexistence">Stable coexistence</option><option value="plasticity_escape">Plasticity escape</option><option value="evidence_pruning">Evidence-pruned branch</option></select></label>
+              <button id="generateHelixObservation" class="launch">✦ Generate + persist next observation</button>
+              <small>No clinical state is changed. This creates a deterministic synthetic frame and reconciliation receipt.</small>
+            </div>
+            <div class="helix-pairing"><small>PROGRESSION PAIRING</small><div id="helixPairing"><p>Choose a path and generate the next observation.</p></div></div>
+            <div class="helix-receipt"><small>COCKROACHDB FRAME RECEIPT</small><code id="helixReceipt">—</code></div>
+          </article>
+        </div>
+        <article class="panel helix-timeline">
+          <div class="section-bar"><span>PERSISTENT OBSERVATION CHAIN</span><b id="helixMemoryCount">0 FRAMES</b></div>
+          <div class="helix-timeline-controls"><button id="playHelixProgression" class="outline-action">▶ Play cancer progression</button><input id="helixFrameSlider" type="range" min="0" max="0" value="0"><span id="helixProgressLabel">G0</span></div>
+          <div id="helixFrameRail" class="helix-frame-rail"></div>
+        </article>
+        <div class="helix-insight-grid">
+          <article class="panel"><div class="section-bar"><span>MUTATION PAIR-BREAK ATLAS</span><b>LIVE GRAPH</b></div><div id="helixMutationAtlas" class="helix-atlas"><p>Loading mutation events…</p></div></article>
+          <article class="panel"><div class="section-bar"><span>MEMORY IMPACT</span><b>WHY PERSISTENCE MATTERS</b></div><div id="helixMemoryImpact" class="helix-impact"><p>Rehydrating prior frames, paths and forecast divergence…</p></div></article>
+        </div>
+      </section>
+
+      <section id="view-memory" class="app-view">
+        <article class="view-intro memory-intro">
+          <span class="eyebrow">COCKROACHDB DISTRIBUTED MEMORY · AWS LAMBDA OPEN-SOURCE INFERENCE</span>
+          <h1>Agents remember <em>across restarts.</em></h1>
+          <p>Retrieve a synthetic patient timeline, persist agent checkpoints and search clinical memories by meaning—not exact keywords.</p>
+        </article>
+
+        <article class="panel memory-architecture">
+          <div class="section-bar"><span>LIVE MEMORYMESH ARCHITECTURE</span><b id="memoryOverallStatus">CONNECTING</b></div>
+          <div class="memory-flow">
+            <div><i>01</i><small>APPLICATION</small><b>FastAPI</b><span>governed request</span></div>
+            <em>→</em>
+            <div><i>02</i><small>EXECUTION</small><b id="memoryRuntime">AWS Lambda</b><span>serverless worker</span></div>
+            <em>→</em>
+            <div><i>03</i><small>OPEN MODEL</small><b id="memoryModel">BGE Small</b><span id="memoryDimensions">384D → 1024D</span></div>
+            <em>→</em>
+            <div><i>04</i><small>PERSISTENCE</small><b id="memoryDatabase">CockroachDB</b><span id="memoryIndex">vector index</span></div>
+          </div>
+        </article>
+
+        <div class="memory-layout">
+          <article class="panel memory-patient-panel">
+            <div class="section-bar"><span>PERSISTENT PATIENT MEMORY</span><b id="memoryPatientStatus">LOADING</b></div>
+            <div class="memory-patient-head">
+              <div><small>SYNTHETIC PATIENT</small><strong id="memoryPatientCode">ONCO-007</strong><span id="memoryCancerType">Loading CockroachDB record…</span></div>
+              <button id="refreshMemory" class="outline-action">↻ Refresh</button>
+            </div>
+            <div class="memory-facts">
+              <div><small>STAGE</small><b id="memoryStage">—</b></div>
+              <div><small>DRIVER</small><b id="memoryDriver">—</b></div>
+              <div><small>EVENTS</small><b id="memoryEventCount">—</b></div>
+              <div><small>MEMORIES</small><b id="memoryCount">—</b></div>
+            </div>
+            <div id="memoryLedger" class="memory-ledger"><p>Loading agent checkpoint, handoff and approval evidence…</p></div>
+            <button id="embedMemory" class="launch memory-embed" disabled>⌁ Re-embed persistent memory through Lambda</button>
+            <small id="memoryWriteStatus" class="memory-write-status">Research-only records · no medical action permitted</small>
+          </article>
+
+          <article class="panel memory-search-panel">
+            <div class="section-bar"><span>SEMANTIC MEMORY SEARCH</span><b id="memorySearchMode">VECTOR</b></div>
+            <div class="memory-query-box">
+              <label for="memoryQuery">Ask what the agent remembers</label>
+              <textarea id="memoryQuery" rows="3">What treatment resistance mechanism is emerging?</textarea>
+              <button id="searchMemory" class="launch">⌕ Search distributed memory</button>
+              <small id="memorySearchStatus">Query → AWS Lambda → BGE embedding → CockroachDB vector index</small>
+            </div>
+            <div id="memoryMatches" class="memory-matches"><p class="empty">Run a semantic search to reveal ranked agent memories.</p></div>
+          </article>
+        </div>
+
+        <div class="memory-proof-strip">
+          <div><b>RESTART-REHYDRATABLE</b><span>Agent state survives application restarts</span></div>
+          <div><b>MULTI-AGENT HANDOFF</b><span>Bioinformatics Agent → ML Guardian</span></div>
+          <div><b>HUMAN SAFETY GATE</b><span>Research hypothesis remains approval-bound</span></div>
+        </div>
+      </section>
+
+      <section id="view-graph" class="app-view">
+        <article class="view-intro"><span class="eyebrow">DATAHUB CAUSAL OBSERVATORY · LIVE EVIDENCE / SIMULATED CONSEQUENCE</span><h1>Watch metadata become a <em>safety force field.</em></h1><p>Synchronize the live graph, inject a research incident, observe its verified blast radius, then preview the governed counterfactual recovery without writing data.</p></article>
+        <div class="observatory-layout">
+          <article class="panel observatory-stage">
+            <div class="section-bar"><span>SPATIAL ML LINEAGE ORGANISM</span><b id="observatoryRenderer">○ starting causal engine</b></div>
+            <canvas id="observatory3d" aria-label="Interactive three-dimensional DataHub lineage graph with incident and repair propagation"></canvas>
+            <div class="observatory-node-hud"><small>FOCUSED ASSET</small><strong id="observatoryNode">progression_features</strong><span id="observatoryNodeKind">cataloged feature table</span><code id="observatoryUrn">Awaiting live graph synchronization…</code></div>
+            <div class="truth-boundary"><span><i class="live"></i>LIVE DATAHUB EVIDENCE</span><span><i class="sim"></i>SIMULATED BIOLOGY</span><span><i class="extension"></i>SEVEN CATALOGED DATA PRODUCTS</span><span><i class="gate"></i>HUMAN POLICY MEMBRANE</span></div>
+          </article>
+          <article class="panel observatory-console">
+            <div class="section-bar"><span>CAUSAL CONTROL DECK</span><b id="observatoryMode">UNSYNCED</b></div>
+            <button id="syncObservatory" class="launch observatory-sync">◎ Synchronize live DataHub graph</button>
+            <div class="observatory-proof"><small>GRAPH PROVENANCE</small><strong id="observatoryProof">No live evidence attached</strong><p id="observatoryCaptured">The 3D topology starts locally; synchronization attaches fresh MCP evidence.</p></div>
+            <div id="observatoryScenarios" class="observatory-scenarios">
+              <button class="active" data-observatory-case="feature_quality"><i>01</i><span>Biomarker completeness</span></button>
+              <button data-observatory-case="cancer_progression"><i>02</i><span>Tumour-state surge</span></button>
+              <button data-observatory-case="model_drift"><i>03</i><span>Cancer cohort drift</span></button>
+              <button data-observatory-case="schema_mutation"><i>04</i><span>Genomic schema mutation</span></button>
+              <button data-observatory-case="biomarker_discordance"><i>05</i><span>Multi-omic discordance</span></button>
+              <button data-observatory-case="protein_conformation"><i>06</i><span>Protein evidence rift</span></button>
+              <button data-observatory-case="microenvironment_escape"><i>07</i><span>Microenvironment escape</span></button>
+            </div>
+            <div class="causal-action"><small>SELECTED COUNTERFACTUAL</small><strong id="causalAction">BLOCK MODEL</strong><p id="causalRepair">Repair preview: COALESCE feature patch</p></div>
+            <div class="observatory-actions"><button id="injectIncident">⚡ Inject incident</button><button id="previewRepair">✦ Preview recovery</button><button id="rewindObservatory">↶ Rewind</button></div>
+            <div id="causalLedger" class="causal-ledger"><p>Select a scenario, synchronize DataHub and inject the incident.</p></div>
+            <div class="observatory-boundary"><span><b id="observatoryReads">0/6</b><small>LIVE MCP READS</small></span><span><b id="observatoryAffected">0</b><small>AFFECTED NODES</small></span><span><b>0</b><small>WRITES</small></span></div>
+          </article>
+        </div>
+        <article class="panel lineage-canvas">
+          <div class="section-bar"><span>END-TO-END ML LINEAGE · 3 HOPS</span><b>◎ live MCP get_lineage</b></div>
+          <div class="lineage-flow">
+            <button class="lineage-node"><small>GCS · RAW</small><b>cohort.h5ad</b><span>14,382 cells · 24.8 GB</span></button><i>→</i>
+            <button class="lineage-node"><small>BIGQUERY · TABLE</small><b>normalized_expression</b><span>freshness ✓ · owner ✓</span></button><i>→</i>
+            <button id="graphFeatureNode" class="lineage-node warn"><small>FEATURE VIEW</small><b>progression_features</b><span id="graphFeatureStatus">completeness incident ⚠</span></button><i>→</i>
+            <button class="lineage-node"><small>VERTEX AI · MODEL</small><b id="graphModel">luad_progression_v3</b><span>production endpoint</span></button><i>→</i>
+            <button class="lineage-node"><small>CLOUD RUN · APP</small><b>OncoTwin 3D</b><span>judge experience</span></button>
+          </div>
+          <div class="graph-detail-grid"><div><small>BLAST RADIUS</small><b>1 model · 2 APIs · 1 dashboard</b><p>A failed completeness contract propagates into the deployed progression model and two downstream consumers.</p></div><div><small>OWNERSHIP CHAIN</small><b id="graphOwner">Thoracic ML</b><p>Dataset steward → feature owner → model owner → application operator.</p></div><div><small>QUALITY ASSERTIONS</small><b>8 passing · 1 warning</b><p>Freshness, null rate, row count, schema compatibility and expression range.</p></div></div>
+        </article>
+      </section>
+
+      <section id="view-proof" class="app-view">
+        <article class="view-intro proof-intro"><span class="eyebrow">JUDGE PROOF MODE · SEVEN DATAHUB-NATIVE CONDITIONS</span><h1>Enter the <em>Cancer Context Universe.</em></h1><p>Each 3D world maps to its own cataloged BigQuery data product. Capture identity, schema, contract, ownership, query and bidirectional-lineage proof from the self-hosted DataHub MCP server.</p></article>
+        <div class="proof-layout">
+          <article class="panel proof-stage">
+            <div class="section-bar"><span>INTERACTIVE 3D MISSION MULTIVERSE</span><b id="proofRendererStatus">○ starting local engine</b></div>
+            <canvas id="proof3d" aria-label="Twelve interactive cancer decision worlds orbiting a central evidence graph"></canvas>
+            <div class="proof-stage-hud"><small>SELECTED WORLD</small><strong id="proofCaseTitle">Biomarker Completeness Crisis</strong><span id="proofCaseChallenge">Production ML Agents</span></div>
+            <div class="proof-orbit-legend"><span><i></i>DataHub context beam</span><span><i></i>RL safety state</span><span><i></i>Governed recovery</span></div>
+            <div class="proof-stage-actions"><button id="launchProofCase">▷ Launch this mission</button><button id="replayProofCase" disabled>↻ Replay last proof</button></div>
+          </article>
+          <article class="panel proof-console">
+            <div class="section-bar"><span>LIVE DATAHUB EVIDENCE LEDGER</span><b id="proofMode">NOT CAPTURED</b></div>
+            <div class="proof-verdict"><small>VERIFIABLE CLAIM</small><strong id="proofVerdict">Run a live proof capture</strong><p id="proofTimestamp">No cached screenshots. Every proof is generated on demand.</p></div>
+            <button id="runDatahubProof" class="launch proof-button">◎ Capture live DataHub proof</button>
+            <code id="proofAssetUrn">Awaiting canonical DataHub URN…</code>
+            <div id="proofToolLedger" class="proof-tool-ledger"><p class="empty">MCP search, schema and bidirectional lineage calls will appear here with their measured latency.</p></div>
+            <div class="proof-boundary"><span><b id="proofToolCount">0/6</b><small>MCP READS</small></span><span><b id="proofIncidentCount">—</b><small>ACTIVE INCIDENTS</small></span><span><b>0</b><small>WRITES DURING PROOF</small></span></div>
+            <button id="downloadProof" class="outline-action proof-download" disabled>⇩ Export judge evidence JSON</button>
+          </article>
+        </div>
+        <div id="proofCaseGrid" class="proof-case-grid"></div>
+      </section>
+
+      <section id="view-ops" class="app-view">
+        <article class="view-intro ops-intro"><span class="eyebrow">COCKROACHDB MCP · CCLOUD · OFFICIAL AGENT SKILLS</span><h1>Make the database <em>prove itself.</em></h1><p>A read-only operations agent inspects the live cluster, follows Cockroach Labs' health-review skill, verifies Cloud inventory through ccloud and persists a tamper-evident receipt.</p></article>
+        <div class="ops-scoreboard">
+          <article class="panel ops-cap"><small>OFFICIAL MCP SERVER</small><strong id="opsMcpState">CHECKING</strong><span id="opsMcpDetail">stdio · read-only</span></article>
+          <article class="panel ops-cap"><small>CCLOUD CLI</small><strong id="opsCcloudState">CHECKING</strong><span id="opsCcloudDetail">authenticated inventory</span></article>
+          <article class="panel ops-cap"><small>AGENT SKILL</small><strong id="opsSkillState">CHECKING</strong><span id="opsSkillDetail">reviewing-cluster-health</span></article>
+          <article class="panel ops-cap"><small>VECTOR MEMORY</small><strong id="opsVectorState">READY</strong><span>distributed index · 1024D</span></article>
+        </div>
+        <div class="ops-layout">
+          <article class="panel ops-command">
+            <div class="section-bar"><span>OPERATIONS AGENT CONTROL</span><b id="opsSafety">READ ONLY</b></div>
+            <div class="ops-orbit" aria-label="CockroachDB operations agent toolchain">
+              <div class="ops-core"><i>⌬</i><strong>Operations Agent</strong><small>skill-directed</small></div>
+              <span class="ops-node mcp">MCP<br><small>typed reads</small></span><span class="ops-node cli">ccloud<br><small>cloud inventory</small></span><span class="ops-node skill">Skill<br><small>health review</small></span><span class="ops-node memory">CRDB<br><small>proof memory</small></span>
+            </div>
+            <button id="runOpsProof" class="launch">◎ Run live CockroachDB proof</button>
+            <p class="ops-guard">No MCP mutation calls. Single-cluster scope. Results are bounded by CockroachDB Cloud MCP limits. Errors are preserved instead of hidden.</p>
+          </article>
+          <article class="panel ops-ledger-panel">
+            <div class="section-bar"><span>LIVE TOOL RECEIPT</span><b id="opsVerdict">AWAITING RUN</b></div>
+            <div id="opsLedger" class="ops-ledger"><p>Five MCP reads, one authenticated ccloud inventory check and one official skill fingerprint will appear here.</p></div>
+            <div class="ops-receipt"><small>SHA-256 RECEIPT</small><code id="opsReceipt">—</code></div>
+          </article>
+        </div>
+        <article class="panel ops-history">
+          <div class="section-bar"><span>PERSISTENT OPERATIONS MEMORY</span><b id="opsRunCount">0 RUNS</b></div>
+          <div id="opsRuns" class="ops-runs"><p>Prior proof runs will rehydrate from CockroachDB.</p></div>
+        </article>
+      </section>
+
+      <section id="view-fix" class="app-view">
+        <article class="view-intro"><span class="eyebrow">METADATA-AWARE CODE GENERATION</span><h1>Generate the fix from <em>real context.</em></h1><p>The Repair Engineer reads schema, lineage, owners and quality rules before producing a mergeable artifact.</p></article>
+        <div class="fix-layout">
+          <article class="panel code-panel"><div class="section-bar"><span>GENERATED ARTIFACT</span><div class="code-tabs"><button class="active" data-code="dbt">dbt repair</button><button data-code="airflow">Airflow guard</button><button data-code="python">ingestion patch</button></div></div><pre id="generatedCode"><code></code></pre></article>
+          <article class="panel fix-review"><div class="section-bar"><span>MERGE READINESS</span><b>92 / 100</b></div><div class="checklist"><p><i>✓</i><span><b>Schema grounded</b><small>Fields verified through DataHub MCP</small></span></p><p><i>✓</i><span><b>Lineage-aware</b><small>Protects downstream model and API</small></span></p><p><i>✓</i><span><b>Owner assigned</b><small id="fixOwner">Thoracic ML</small></span></p><p><i>✓</i><span><b>Quality threshold</b><small>Matches cataloged completeness rule</small></span></p><p class="pending"><i>!</i><span><b>Human approval</b><small>Required before PR/writeback</small></span></p></div><button id="downloadFix" class="launch small">⇩ Download generated artifact</button><button id="reviewWriteback" class="outline-action">Review DataHub writeback</button></article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="context-rail rail-panel">
+      <div class="rail-title"><span>CONTEXT INTELLIGENCE</span><b>⌘</b></div>
+      <section class="intelligence trust-block"><small>DATA TRUST</small><strong><b id="trustValue">61</b><em>/100</em></strong><div class="trust-track"><i id="trustBar"></i></div><p>⚠ <span id="trustIncident">RNA-seq freshness breach</span></p></section>
+      <section class="intelligence"><h3>▱ &nbsp; DATAHUB IDENTITY</h3><dl><dt>Model</dt><dd id="rightModel">luad_progression_v3</dd><dt>Owner</dt><dd id="rightOwner">Thoracic ML</dd><dt>Cohort</dt><dd id="rightSource">TCGA-LUAD + public scRNA atlas</dd></dl></section>
+      <section class="intelligence"><h3>⌬ &nbsp; DRIVER EVIDENCE</h3><div id="driverBars" class="mini-bars"></div></section>
+      <section class="intelligence"><h3>✣ &nbsp; scRNA COMPOSITION</h3><div id="compositionList" class="composition"></div></section>
+      <section class="intelligence"><h3>⚗ &nbsp; MOLECULE HYPOTHESES</h3><div id="moleculeList" class="molecules"></div><small class="rdkit-note">RDKit similarity · research hypotheses only</small></section>
+      <section class="intelligence utility"><h3>AGENT UTILITIES</h3><span>CRDB MCP</span><span>ccloud CLI</span><span>CRDB Skills</span><span>Vector Index</span></section>
+    </aside>
+  </div>
+
+  <footer><span>CockroachDB MCP · ccloud · Agent Skills · Distributed Vector Index · AWS Lambda · FastEmbed/BGE</span><a id="analyticsLink" href="http://localhost:8100" target="_blank" rel="noreferrer">Open Analytics Agent ↗</a></footer>
+
+  <script type="importmap">{"imports":{"three":"/assets/vendor/three.module.min.js","three/addons/":"/assets/vendor/addons/"}}</script>
+  <script type="module" src="/assets/app.js?v=11.4.1"></script>
+</body>
+</html>

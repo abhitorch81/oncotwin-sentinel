@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+.venv/
+.test-venv/
+.ingestion-venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+*.log
+ONCOTWIN_*_PROOF.txt
+service-account*.json
+*.zip
+*.mp4
