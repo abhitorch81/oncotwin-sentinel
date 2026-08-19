@@ -21,3 +21,13 @@ Expected: `installed: true`, four visible agents, coordinator `oncotwin_nano_saf
 ## Safety boundary
 
 The Safety Steward tool always returns `approval_granted: false`. The separate visual approval endpoint remains the only approval path, and voice remains prohibited from granting approval.
+
+## Slice 2: background execution and trace translation
+
+When `ADK_ENABLED=true`, mission start schedules the ADK graph as a background task and immediately returns the deterministic governed mission. The privacy-safe trace stores node names, visible agent names, event types, and tool names only; it deliberately excludes tool arguments, model reasoning, credentials, and prompt contents.
+
+```bash
+curl -s http://127.0.0.1:8000/api/nano/missions/MISSION_ID/adk-trace | python3 -m json.tool
+```
+
+Trace status moves through `queued`, `running`, and `succeeded`. Authentication, model, or runtime failure becomes `fallback` while the working deterministic mission remains available.

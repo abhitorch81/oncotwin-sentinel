@@ -1,12 +1,13 @@
 import asyncio
 import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .config import get_settings
 from .adk_fleet import adk_runtime_status
+from .adk_runtime import AdkExecutionService, AdkTraceRepository
 from .memory import InMemoryMissionRepository
 from .mission_service import MissionService
 from .models import ApprovalRequest, CommandRequest, StartMissionRequest
@@ -20,13 +21,16 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.origins,
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 repository = InMemoryMissionRepository()
 service = MissionService(repository)
+adk_trace_repository = AdkTraceRepository()
+adk_execution = AdkExecutionService(adk_trace_repository)
 
 
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True, "app_name": settings.app_name, "ui_version": settings.app_version,
             "edition": "google-native-milestone-1", "mode": "demo" if settings.demo_mode else "live",
-            "medical_use": "synthetic_research_only", "human_approval_required": True}
+            "medical_use": "synthetic_research_only", "human_approval_required": True,
+            "adk_enabled": settings.adk_enabled}
 
 
 @app.get("/api/architecture/proof")
@@ -59,8 +63,22 @@ def candidates() -> list[dict]:
 
 
 @app.post("/api/nano/missions/start")
-def start_mission(request: StartMissionRequest) -> dict:
-    return service.start(request.prompt).model_dump()
+async def start_mission(request: StartMissionRequest, background_tasks: BackgroundTasks) -> dict:
+    mission = service.start(request.prompt)
+    await adk_execution.prepare(mission.id, settings.adk_model, settings.adk_enabled)
+    if settings.adk_enabled:
+        background_tasks.add_task(adk_execution.run, mission.id, request.prompt, settings.adk_model)
+    return mission.model_dump()
+
+
+@app.get("/api/nano/missions/{mission_id}/adk-trace")
+async def adk_trace(mission_id: str) -> dict:
+    if not repository.get(mission_id):
+        raise HTTPException(404, "Mission not found")
+    trace = await adk_trace_repository.get(mission_id)
+    if not trace:
+        raise HTTPException(404, "ADK trace not initialized")
+    return trace.model_dump()
 
 
 @app.get("/api/nano/missions/{mission_id}")
