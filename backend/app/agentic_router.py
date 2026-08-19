@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from .agentic_models import AgenticCommandRequest, AgenticCommandResponse, AgenticSafetyEnvelope
+from .adk_fleet import adk_capabilities
 from .config import Settings
 from .mission_control import MissionManager
 from .rl_simulation import MISSION_CASES
@@ -53,8 +54,15 @@ def agentic_capabilities(settings: Settings) -> dict[str, Any]:
     return {
         "edition": "agentic-multimodal",
         "lanes": {
-            "local_fast": "Deterministic UI and Three.js commands",
-            "investigation": "Read-first governed mission orchestration",
+            "local_fast": {
+                "transport": "browser",
+                "role": "Deterministic UI and Three.js commands",
+            },
+            "investigation": {
+                "transport": "backend",
+                "role": "Read-first governed mission orchestration",
+            },
+            "google_adk": adk_capabilities(settings),
             "gemini_live": {
                 "status": live_status,
                 "transport": "backend_websocket",

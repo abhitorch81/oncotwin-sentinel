@@ -10,4 +10,4 @@ payload="$(curl -fsS "${HEALTH_URL}")" || {
   exit 1
 }
 
-python3 -c 'import json,sys; p=json.load(sys.stdin); assert p.get("ui_version")=="10.1.0", f"Wrong UI version: {p.get(chr(117)+chr(105)+chr(95)+chr(118)+chr(101)+chr(114)+chr(115)+chr(105)+chr(111)+chr(110))!r}"; print("Verified OncoTwin UI v10.1.0 · mode:", p["mode"])' <<<"${payload}"
+python3 -c 'import json,sys; p=json.load(sys.stdin); assert p.get("ui_version")=="12.2.0", f"Wrong UI version: {p.get(chr(117)+chr(105)+chr(95)+chr(118)+chr(101)+chr(114)+chr(115)+chr(105)+chr(111)+chr(110))!r}"; print("Verified OncoTwin UI v12.2.0 · mode:", p["mode"])' <<<"${payload}"

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/assets/evolution.css?v=11.3.0" />
   <link rel="stylesheet" href="/assets/helix.css?v=11.3.0" />
   <link rel="stylesheet" href="/assets/cockroach_ops.css?v=11.4.0" />
-  <link rel="stylesheet" href="/assets/agentic-multimodal.css?v=12.0.0" />
+  <link rel="stylesheet" href="/assets/agentic-multimodal.css?v=12.2.0" />
 </head>
 <body>
   <header class="app-header">
@@ -379,12 +379,13 @@
   </div>
 
   <section id="agenticCommandCenter" class="agentic-command-center" aria-label="Talk to the OncoTwin multimodal command router">
-    <header><div class="agentic-orb" aria-hidden="true"><i></i><i></i><i></i></div><span><small>TALK TO THE TWIN</small><b>Multimodal Command Center</b></span><div class="agentic-lanes"><em id="agenticLane">LOCAL FAST LANE</em><em id="agenticLiveBadge" class="planned">GEMINI LIVE · CHECKING</em></div><button id="agenticCollapse" type="button" aria-label="Collapse command center">—</button></header>
+    <header><div class="agentic-orb" aria-hidden="true"><i></i><i></i><i></i></div><span><small>TALK TO THE TWIN</small><b>Multimodal Command Center</b></span><div class="agentic-lanes"><em id="agenticLane">LOCAL FAST LANE</em><em id="agenticAdkBadge" class="planned">ADK FLEET · CHECKING</em><em id="agenticLiveBadge" class="planned">GEMINI LIVE · CHECKING</em></div><button id="agenticCollapse" type="button" aria-label="Collapse command center">—</button></header>
     <div class="agentic-body">
-      <div class="agentic-prompts" aria-label="Example commands"><button type="button" data-agentic-prompt="Show me why the resistant clone is red.">Why is the clone red?</button><button type="button" data-agentic-prompt="Focus on the lung.">Focus anatomy</button><button type="button" data-agentic-prompt="Compare the resistance scenarios.">Compare scenarios</button><button type="button" data-agentic-prompt="Start an investigation.">Investigate</button></div>
+      <div class="agentic-prompts" aria-label="Example commands"><button type="button" data-agentic-prompt="Show me why the resistant clone is red.">Why is the clone red?</button><button type="button" data-agentic-prompt="Focus on the lung.">Focus anatomy</button><button type="button" data-agentic-prompt="Compare the resistance scenarios.">Compare scenarios</button><button type="button" data-agentic-prompt="Start an ADK investigation.">Run ADK fleet</button></div>
       <form id="agenticForm"><button id="agenticMic" class="agentic-mic" type="button" aria-label="Start voice input"><span>◉</span></button><label><span class="sr-only">Ask the digital twin</span><input id="agenticInput" type="text" maxlength="1000" autocomplete="off" placeholder="Ask the twin to focus, explain, compare or investigate…"></label><button id="agenticSend" type="submit">Send <span>↗</span></button></form>
       <div class="agentic-result"><div><small id="agenticIntent">READY · VOICE + TEXT + 3D</small><p id="agenticResponse">Try the judge moment: “Show me why the resistant clone is red.”</p></div><button id="agenticSpeak" type="button" aria-label="Toggle spoken responses">VOICE ON</button></div>
       <div id="agenticEvidence" class="agentic-evidence" hidden></div>
+      <section id="agenticAdkTrace" class="agentic-adk-trace" hidden aria-live="polite"></section>
       <footer><span><i></i> SYNTHETIC RESEARCH ONLY</span><span>VOICE CAN NEVER APPROVE</span><span id="agenticLatency">NO COMMAND YET</span></footer>
     </div>
   </section>
@@ -392,7 +393,7 @@
   <footer><span>CockroachDB MCP · ccloud · Agent Skills · Distributed Vector Index · AWS Lambda · FastEmbed/BGE</span><a id="analyticsLink" href="http://localhost:8100" target="_blank" rel="noreferrer">Open Analytics Agent ↗</a></footer>
 
   <script type="importmap">{"imports":{"three":"/assets/vendor/three.module.min.js","three/addons/":"/assets/vendor/addons/"}}</script>
-  <script type="module" src="/assets/app.js?v=12.0.0"></script>
-  <script type="module" src="/assets/agentic-multimodal.js?v=12.1.0"></script>
+  <script type="module" src="/assets/app.js?v=12.2.0"></script>
+  <script type="module" src="/assets/agentic-multimodal.js?v=12.2.0"></script>
 </body>
 </html>

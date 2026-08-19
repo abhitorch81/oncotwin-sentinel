@@ -26,13 +26,27 @@ function dispatchActions(actions=[]){
   actions.forEach((action,index)=>setTimeout(()=>window.dispatchEvent(new CustomEvent('oncotwin:agentic-action',{detail:action})),index*70));
 }
 
+function setAdkBadge(status){
+  const badge=$('agenticAdkBadge');badge.classList.remove('planned','ready','error','adk-ready');
+  if(status==='ready'){badge.textContent='ADK FLEET · READY';badge.classList.add('adk-ready')}
+  else if(status==='dependency_missing'){badge.textContent='ADK · INSTALL';badge.classList.add('error')}
+  else if(status==='model_upgrade_required'){badge.textContent='ADK · MODEL BLOCK';badge.classList.add('error')}
+  else{badge.textContent='ADK FLEET · SAFE FALLBACK';badge.classList.add('planned')}
+}
+
+function renderAdkTrace(fleet){
+  const box=$('agenticAdkTrace');if(!fleet){box.hidden=true;box.innerHTML='';return}
+  const traceByAgent=new Map((fleet.trace||[]).map(item=>[item.agent,item]));
+  box.hidden=false;box.innerHTML=`<header><span>GOOGLE ADK · ${escapeHtml(fleet.orchestrator||'SEQUENTIAL AGENT')}</span><b>${escapeHtml(fleet.model||'')}</b></header><div class="agentic-adk-grid">${(fleet.agents||[]).map((agent,index)=>{const event=traceByAgent.get(agent);return`<article title="${escapeHtml(event?.summary||'Awaiting trace')}"><small>0${index+1} · ${escapeHtml(event?.status||'safe fallback')}</small><b>${escapeHtml(agent)}</b></article>`}).join('')}</div><p>${escapeHtml(fleet.final_summary||'ADK stopped safely without external action.')}</p>`;
+}
+
 function renderCommandResult(data,{nativeAudio=false,latency=null}={}){
   $('agenticLane').textContent=data.lane==='local_fast'?(nativeAudio?'GEMINI → SAFE ROUTER':'LOCAL FAST LANE'):'GOVERNED INVESTIGATION';
   $('agenticIntent').textContent=`${data.intent.replaceAll('_',' ').toUpperCase()} · ${Math.round(data.confidence*100)}%`;
   $('agenticResponse').textContent=data.spoken_response;
   if(latency!==null)$('agenticLatency').textContent=`${latency} MS · ${data.modality.toUpperCase()}`;
   center.classList.toggle('approval-boundary',data.safety.human_confirmation_required);
-  renderEvidence(data.evidence);dispatchActions(data.ui_actions);
+  renderEvidence(data.evidence);renderAdkTrace(data.mission?.adk_fleet);dispatchActions(data.ui_actions);
   if(!nativeAudio)speak(data.spoken_response);
 }
 
@@ -128,7 +142,7 @@ async function startLiveCapture(){
   try{
     const socket=await connectLive();
     mediaStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-    captureContext=new AudioContext();await captureContext.audioWorklet.addModule('/assets/pcm-capture-worklet.js?v=12.1.0');
+    captureContext=new AudioContext();await captureContext.audioWorklet.addModule('/assets/pcm-capture-worklet.js?v=12.2.0');
     captureSource=captureContext.createMediaStreamSource(mediaStream);captureNode=new AudioWorkletNode(captureContext,'oncotwin-pcm16-capture',{processorOptions:{targetSampleRate:16000}});
     const silent=captureContext.createGain();silent.gain.value=0;captureSource.connect(captureNode);captureNode.connect(silent).connect(captureContext.destination);
     captureNode.port.onmessage=event=>{if(event.data.type!=='audio'||socket.readyState!==WebSocket.OPEN)return;const rms=Number(event.data.rms||0);speechFrames=rms>.025?speechFrames+1:0;if(speechFrames===3&&playbackSources.size)stopPlayback();socket.send(JSON.stringify({type:'audio',data:bytesToBase64(event.data.buffer)}))};
@@ -159,5 +173,5 @@ $('agenticCollapse').addEventListener('click',()=>{center.classList.toggle('coll
 document.querySelectorAll('[data-agentic-prompt]').forEach(button=>button.addEventListener('click',()=>{$('agenticInput').value=button.dataset.agenticPrompt;submitCommand(button.dataset.agenticPrompt,'text')}));
 
 setupRecognition();
-fetch('/api/agentic/capabilities').then(response=>response.ok?response.json():Promise.reject(new Error('capabilities unavailable'))).then(data=>{capabilities=data;setLiveBadge(data.lanes.gemini_live.status);$('agenticIntent').textContent='READY · SAFE COMMAND CONTRACT'}).catch(()=>{setLiveBadge('disabled')});
+fetch('/api/agentic/capabilities').then(response=>response.ok?response.json():Promise.reject(new Error('capabilities unavailable'))).then(data=>{capabilities=data;setLiveBadge(data.lanes.gemini_live.status);setAdkBadge(data.lanes.google_adk.status);$('agenticIntent').textContent='READY · SAFE COMMAND CONTRACT'}).catch(()=>{setLiveBadge('disabled');setAdkBadge('disabled')});
 addEventListener('beforeunload',()=>{if(liveSocket?.readyState===WebSocket.OPEN)liveSocket.send(JSON.stringify({type:'stop'}));mediaStream?.getTracks().forEach(track=>track.stop())});

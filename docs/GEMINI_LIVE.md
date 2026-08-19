@@ -1,5 +1,9 @@
 # Gemini Live voice lane
 
+Gemini Live is the auxiliary realtime voice surface. The mandatory primary
+hackathon reasoning lane is the Google ADK fleet on Gemini 3.5+; the Live model
+does not replace or downgrade that primary model requirement.
+
 OncoTwin Sentinel uses a backend WebSocket bridge at `/api/agentic/live`.
 Browser audio is converted to raw 16-bit PCM at 16 kHz, forwarded through the
 official Google Gen AI SDK, and played as 24 kHz PCM native audio. Input and

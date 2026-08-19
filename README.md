@@ -1,13 +1,14 @@
 # OncoTwin 3D × DataHub — Cancer Context Mission Control
 
-[![OncoTwin](https://img.shields.io/badge/OncoTwin-v10.1.0-61e1b3)](#)
+[![OncoTwin](https://img.shields.io/badge/OncoTwin-v12.2.0-61e1b3)](#)
 [![DataHub](https://img.shields.io/badge/DataHub-1.7.0-6d5dfc)](https://datahub.com/)
 [![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Cloud%20Run%20%2B%20BigQuery-4285F4)](https://cloud.google.com/)
+[![Google ADK](https://img.shields.io/badge/Google%20ADK-Fortified%20Fleet-80bfff)](https://google.github.io/adk-docs/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **DataHub-grounded cancer-context digital twins that discover risk, block unsafe ML consumption, repair governed data and write auditable knowledge back to the context graph.**
 
-OncoTwin V10 is a reproducible hackathon application that makes cancer-data reliability visible. It combines seven cancer-context digital twins with DataHub catalog search, entity context, schema inspection, end-to-end lineage, generating-query evidence, natural-language analytics and human-approved, condition-scoped incident writeback.
+OncoTwin V12.2 is a reproducible hackathon application that makes cancer-data reliability visible. It combines twelve cancer-context digital twins with Google ADK orchestration, Gemini 3.5+, DataHub catalog search, entity context, schema inspection, end-to-end lineage, generating-query evidence, natural-language analytics and human-approved, condition-scoped incident writeback.
 
 > Research demonstration only. The included data is synthetic/de-identified and the application does not provide diagnosis or medical advice.
 
@@ -230,6 +231,7 @@ Cloud Run scales to zero. Stopping the VM stops compute charges, while disk char
 - **DataHub Agent Context Kit** for agent-ready catalog tools.
 - **Official DataHub Skills** installed on the GCP VM for Gemini CLI (`datahub-search`, `datahub-quality`, `datahub-lineage`, `datahub-enrich`). The production Repair Engineer mirrors the same quality → lineage workflow using live MCP evidence and emits a context fingerprint with every generated artifact.
 - **Google Gemini** for grounded narration; Vertex AI credentials are used by the custom agents.
+- **Google ADK Fortified Fleet** coordinates EvidenceScout, TwinAnalyst, RepairPlanner and SafetySteward with Gemini 3.5+ through `SequentialAgent`. The fleet is read-first, emits a visible judge trace and cannot approve or mutate external systems. See `docs/GOOGLE_ADK_FLEET.md`.
 - **Gemini Live native audio** through a backend-only WebSocket, with visible transcription, barge-in, deterministic Three.js commands and a browser voice fallback. See `docs/GEMINI_LIVE.md`.
 - **DataHub Analytics Agent** for natural-language → SQL → chart, context-quality scoring and `/improve-context` writeback.
 - **BigQuery** for analysis-ready scRNA summaries; raw matrices can remain in GCS.
@@ -237,9 +239,9 @@ Cloud Run scales to zero. Stopping the VM stops compute charges, while disk char
 - **Cloud Run** for the mission-control application and Analytics Agent.
 - **Three.js anatomical specimen twin** with locally vendored high-detail GLB lung/heart/liver/kidney meshes, solid tissue lighting, orbit/zoom, selectable lesions, internal scRNA layers and five-stage progression playback.
 - **DataHub-to-scene event bridge**: every agent trace includes a `scene_cue`, so MCP search, quality inspection, lineage, grounded analysis and governance visibly change the 3D scene.
-- **Seven replayable RL safety missions**: biomarker completeness, tumour-state progression, cancer cohort drift, genomic schema mutation, multi-omic biomarker discordance, protein-conformation provenance and tumour-microenvironment escape. A deterministic tabular Q-learning policy chooses data/ML safety actions; it never recommends treatment.
+- **Twelve replayable RL safety missions**, covering governed data quality, resistance evolution, drift, schema mutation, multi-omics, spatial context, liquid biopsy, bispecifics, cell therapy, vaccines and theranostics. A deterministic tabular Q-learning policy chooses data/ML safety actions; it never recommends treatment.
 - **Timestamped evidence replay**: live DataHub MCP results, RL state/action/reward and governance outcomes are persisted as a mission trace and can be replayed without repeating a mutation.
-- **Seven DataHub-native data products**: every mission has a distinct BigQuery table, DataHub URN, owner, tags, contract, schema, upstream lineage and generating-query evidence.
+- **Twelve DataHub-native data products**: every mission has a distinct BigQuery table, DataHub URN, owner, tags, contract, schema, upstream lineage and generating-query evidence.
 - **Undeniable governed writeback**: the feature-quality mission opens a real DataHub incident, blocks its downstream ML consumer, executes an approval-gated BigQuery repair, validates the contract, resolves the incident, and persists the responsible agent, timestamp, job IDs, `AgentRepaired` tag and SHA-256 audit receipt back into DataHub.
 - **Judge-proof receipt**: the Proof Galaxy calls DataHub live and exposes the selected condition, canonical URN, six MCP reads, measured latency, active incidents, the approval boundary and an exportable SHA-256 zero-write JSON receipt.
 - **3D Cancer Context Universe**: seven selectable Three.js worlds use distinct visual grammars—biomarker constellation, cell-state evolution, drift wavefront, schema rift, multi-omic phase conflict, schematic protein folding and spatial immune escape.

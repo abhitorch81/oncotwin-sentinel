@@ -26,6 +26,10 @@ def test_agentic_capabilities_are_honest_about_live_and_fallback_lanes():
     payload = response.json()
     assert payload["signature_demo"] == "Show me why the resistant clone is red."
     live = payload["lanes"]["gemini_live"]
+    adk = payload["lanes"]["google_adk"]
+    assert payload["lanes"]["local_fast"]["transport"] == "browser"
+    assert adk["framework"] == "Google Agent Development Kit (ADK)"
+    assert adk["model_compliant"] is True
     assert live["status"] in {"disabled", "configuration_required", "ready"}
     assert live["transport"] == "backend_websocket"
     assert live["fallback"] == "browser_speech_plus_local_fast"
@@ -95,6 +99,8 @@ def test_multimodal_ui_connects_voice_text_and_threejs_without_autoclicking_appr
     agentic_js = (root / "frontend" / "assets" / "agentic-multimodal.js").read_text(encoding="utf-8")
     evolution_js = (root / "frontend" / "assets" / "evolution3d.js").read_text(encoding="utf-8")
     assert 'id="agenticCommandCenter"' in html
+    assert 'id="agenticAdkTrace"' in html
+    assert 'id="agenticAdkBadge"' in html
     assert 'id="twin3d"' in html
     assert "SpeechRecognition" in agentic_js
     assert "speechSynthesis" in agentic_js
@@ -105,3 +111,4 @@ def test_multimodal_ui_connects_voice_text_and_threejs_without_autoclicking_appr
     assert "focusClone" in evolution_js
     assert "approveMission.click" not in agentic_js
     assert "approveWriteback.click" not in agentic_js
+    assert "renderAdkTrace" in agentic_js

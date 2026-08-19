@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from .adk_fleet import OncoTwinAdkFleet
 from .config import Settings
 from .condition_registry import condition
 from .data_scope import governed_dataset_urn
@@ -21,6 +22,7 @@ class MissionManager:
         self.settings = settings
         self.missions: dict[str, dict[str, Any]] = {}
         self.mcp = DataHubMCP(settings)
+        self.adk_fleet = OncoTwinAdkFleet(settings)
         self.store = Path(settings.mission_store_path)
         self.store.mkdir(parents=True, exist_ok=True)
 
@@ -52,6 +54,26 @@ class MissionManager:
         # makes the captured trace deterministic across Cloud Run workers and
         # test clients; the SSE endpoint then plays the timestamped real trace.
         await self._run(mission)
+        if mission["status"] == "awaiting_approval":
+            mission["adk_fleet"] = await self.adk_fleet.coordinate(self.public(mission))
+            self._event(
+                mission,
+                "adk_fleet_completed",
+                agent="OncoTwinFortifiedFleet",
+                tool="Google ADK SequentialAgent",
+                scene_cue="agent-council",
+                summary=(
+                    f"Google ADK coordinated {len(mission['adk_fleet']['agents'])} read-first "
+                    "specialists and stopped at human approval."
+                ),
+                evidence={
+                    "framework": mission["adk_fleet"]["framework"],
+                    "execution_mode": mission["adk_fleet"]["execution_mode"],
+                    "model": mission["adk_fleet"]["model"],
+                    "external_mutations": 0,
+                },
+            )
+            self._persist(mission)
         return self.public(mission)
 
     async def _datahub_context(self, mission: dict[str, Any], case_id: str) -> dict[str, Any]:

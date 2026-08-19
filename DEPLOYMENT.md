@@ -230,8 +230,24 @@ For the Cloud Run backend, replace the tunnel URL with the VM's private address 
 # Optional Phase 3 native audio. Leave false for the browser-speech fallback.
 export GEMINI_LIVE_ENABLED=true
 export GEMINI_LIVE_USE_VERTEXAI=false
+export GEMINI_MODEL=gemini-3.5-flash
 bash scripts/05_deploy_oncotwin.sh
 ```
+
+The deployment enables Google ADK and runs the primary Fortified Fleet on the
+configured Gemini 3.5+ model through Vertex AI. Before recording the demo,
+verify the exact model ID is enabled in your project and inspect the explicit
+compliance proof:
+
+```bash
+export APP_URL="$(gcloud run services describe oncotwin-mission-control --region=asia-south1 --format='value(status.url)')"
+curl -s "${APP_URL}/api/health" | python3 -m json.tool
+curl -s "${APP_URL}/api/adk/capabilities" | python3 -m json.tool
+```
+
+Both responses must show the primary model as compliant. Gemini Live is a
+separate auxiliary realtime voice lane and does not replace the Gemini 3.5+
+ADK reasoning lane.
 
 When native audio is enabled with the Developer API, the deploy script binds
 `oncotwin-google-api-key` from Secret Manager to the backend only. The browser

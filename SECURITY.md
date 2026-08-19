@@ -25,6 +25,7 @@ If a credential is accidentally committed, revoke it first, then remove it from 
 - BigQuery repair requires the Cloud Run service account and a human approval value.
 - Failed validation leaves the incident active and model consumption blocked.
 - Gemini Live has no mutation tools, approval secret or clinical-action authority. Its transcript is independently interpreted by the deterministic command router, and voice can only open the visible approval panel.
+- Google ADK receives a sanitized mission projection containing event summaries, never raw credentials or approval material. Its four-agent fleet may inspect, reason and propose; only MissionManager can request an action, and existing mutation policy still requires visible human approval.
 
 ## Reporting
 

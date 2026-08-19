@@ -19,7 +19,7 @@ def test_health():
     payload = response.json()
     assert payload["ok"] is True
     assert payload["mode"] == "demo"
-    assert payload["ui_version"] == "12.0.0"
+    assert payload["ui_version"] == "12.2.0"
     assert payload["edition"] == "agentic-multimodal"
     assert payload["medical_use"] == "synthetic_research_only"
     assert payload["bigquery_dataset"] == "oncotwin_agentic"

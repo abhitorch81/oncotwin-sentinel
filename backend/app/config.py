@@ -1,4 +1,5 @@
 from functools import lru_cache
+import re
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -7,7 +8,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     demo_mode: bool = True
     app_name: str = "OncoTwin Sentinel: Living Evidence"
-    app_version: str = "12.0.0"
+    app_version: str = "12.2.0"
     app_edition: str = "agentic-multimodal"
     medical_use: str = "synthetic_research_only"
     human_approval_required: bool = True
@@ -28,7 +29,15 @@ class Settings(BaseSettings):
     bigquery_location: str = "asia-south1"
     bigquery_dataset: str = "oncotwin_agentic"
     google_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    # The hackathon requires Gemini 3.5 or newer for the primary agent lane.
+    gemini_model: str = "gemini-3.5-flash"
+
+    # Google ADK coordinates the read-first specialist fleet. It never receives
+    # mutation credentials or approval material; MissionManager remains the
+    # sole action authority and stops at the human review gate.
+    google_adk_enabled: bool = True
+    google_adk_app_name: str = "oncotwin_sentinel"
+    google_adk_timeout_seconds: float = 90.0
 
     # Gemini Live is opt-in. The deterministic command router remains available
     # when credentials, quota, model access or the realtime connection fail.
@@ -80,6 +89,13 @@ class Settings(BaseSettings):
         if self.gemini_live_use_vertexai:
             return bool(self.google_cloud_project)
         return bool(self.google_api_key)
+
+    @property
+    def hackathon_model_compliant(self) -> bool:
+        match = re.search(r"gemini-(\d+)(?:\.(\d+))?", self.gemini_model.lower())
+        if not match:
+            return False
+        return (int(match.group(1)), int(match.group(2) or 0)) >= (3, 5)
 
 
 @lru_cache

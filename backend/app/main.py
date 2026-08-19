@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from .adk_fleet import build_adk_router
 from .agent_workflow import CancerContextMission
 from .agentic_router import build_agentic_router
 from .config import get_settings
@@ -61,6 +62,7 @@ app.include_router(evolution_router)
 app.include_router(cockroach_ops_router)
 app.include_router(build_agentic_router(mission_manager, settings))
 app.include_router(build_gemini_live_router(settings, mission_manager))
+app.include_router(build_adk_router(settings, mission_manager.adk_fleet))
 
 
 def authorize_external_mutation(operation: str, approval_secret: str | None) -> None:
@@ -100,6 +102,12 @@ async def health() -> dict[str, Any]:
         "bigquery_dataset": settings.bigquery_dataset,
         "mutations_enabled": settings.tools_is_mutation_enabled,
         "human_approval_required": settings.human_approval_required,
+        "hackathon_compliance": {
+            "primary_model": settings.gemini_model,
+            "gemini_3_5_or_newer": settings.hackathon_model_compliant,
+            "agent_framework": "Google ADK + Google GenAI SDK",
+            "google_cloud_service": "Cloud Run",
+        },
         "gemini_live": {
             "enabled": settings.gemini_live_enabled,
             "ready": settings.gemini_live_ready,

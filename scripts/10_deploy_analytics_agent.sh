@@ -28,7 +28,7 @@ gcloud run deploy oncotwin-analytics-agent \
   --network=oncotwin-net \
   --subnet=oncotwin-subnet \
   --vpc-egress=private-ranges-only \
-  --set-env-vars="LLM_PROVIDER=google,LLM_MODEL=gemini-2.0-flash,CHART_LLM_MODEL=gemini-1.5-flash,QUALITY_LLM_MODEL=gemini-1.5-flash,DELIGHT_LLM_MODEL=gemini-1.5-flash,DATAHUB_GMS_URL=http://${DATAHUB_PRIVATE_IP}:8080,ENGINES_CONFIG=/app/config.yaml,BIGQUERY_PROJECT=${GCP_PROJECT_ID},BIGQUERY_DATASET=oncotwin,SQL_ROW_LIMIT=500" \
+  --set-env-vars="LLM_PROVIDER=google,LLM_MODEL=gemini-3.5-flash,CHART_LLM_MODEL=gemini-3.5-flash,QUALITY_LLM_MODEL=gemini-3.5-flash,DELIGHT_LLM_MODEL=gemini-3.5-flash,DATAHUB_GMS_URL=http://${DATAHUB_PRIVATE_IP}:8080,ENGINES_CONFIG=/app/config.yaml,BIGQUERY_PROJECT=${GCP_PROJECT_ID},BIGQUERY_DATASET=oncotwin,SQL_ROW_LIMIT=500" \
   --set-secrets="GOOGLE_API_KEY=oncotwin-google-api-key:latest,DATAHUB_GMS_TOKEN=oncotwin-datahub-token:latest,BIGQUERY_CREDENTIALS_JSON=oncotwin-bigquery-credentials:latest"
 
 ANALYTICS_URL="$(gcloud run services describe oncotwin-analytics-agent --region="${GCP_REGION}" --format='value(status.url)')"

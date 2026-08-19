@@ -17,6 +17,6 @@ fi
 ONCOTWIN_PORT="${ONCOTWIN_PORT:-8080}"
 
 echo "Starting OncoTwin 3D v6.0 on http://localhost:${ONCOTWIN_PORT}"
-echo "Expected header: OncoTwin 3D · DataHub DEMO · V10.1.0"
+echo "Expected header: OncoTwin Sentinel · DataHub DEMO · V12.2.0"
 
 DEMO_MODE=true .venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port "${ONCOTWIN_PORT}"

@@ -5,13 +5,23 @@ This guide proves the submission without requiring a judge to understand every i
 ## Fastest evaluation: hosted application
 
 1. Open the Cloud Run URL supplied in the Devpost entry.
-2. Confirm the header reads **DATAHUB LIVE · V10.1.0**.
+2. Confirm the header reads **DATAHUB LIVE · V12.2.0**.
 3. Open **Proof Galaxy**.
-4. Select each of the seven mission worlds and click **Capture fresh proof**.
+4. Select the mission worlds and click **Capture fresh proof**.
 5. Confirm the selected world shows its condition-specific BigQuery URN and `6/6` successful MCP reads.
 6. Open **Live Mission**, select **Biomarker Completeness Crisis**, and click **Run selected mission**.
 7. Inspect Context Scout, Lineage Sentinel, ML Guardian, Repair Engineer and Governance Steward.
 8. Confirm the workflow stops at **Approval Required** rather than mutating automatically.
+9. Open the Multimodal Command Center and click **Run ADK fleet**.
+10. Confirm the four-agent Google ADK trace uses Gemini 3.5+ and ends at human approval.
+
+Judge-facing machine-readable framework proof:
+
+```bash
+curl -s "$APP_URL/api/health" | python3 -m json.tool
+curl -s "$APP_URL/api/adk/capabilities" | python3 -m json.tool
+curl -s "$APP_URL/api/adk/registry" | python3 -m json.tool
+```
 
 ## Flagship governed-writeback proof
 
@@ -92,4 +102,3 @@ Open <http://localhost:8080>. The application clearly displays `DEMO MODE`; exte
 - `DEMO_RUNBOOK.md` — five-minute presentation
 - `scripts/16_verify_live_rl_mission.sh` — end-to-end mutation proof
 - `scripts/18_verify_all_datahub_conditions.sh` — 7/7 read proof
-

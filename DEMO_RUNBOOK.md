@@ -22,11 +22,17 @@ Orbit the DataHub core. Click several worlds: biomarker completeness,
 multi-omic discordance, schematic protein conformation and microenvironment
 escape. Each world changes the evidence card and can launch its mission.
 
-## 0:45–1:55 — Seven-case RL mission theatre
+## 0:45–1:55 — Google ADK Fortified Fleet + twelve-case mission theatre
 
 Select **Biomarker Completeness Crisis** and ask:
 
 > Which cancer progression datasets are trustworthy, and what downstream models would be affected by a completeness issue?
+
+In the Multimodal Command Center, click **Run ADK fleet**. Point to the visible
+EvidenceScout → TwinAnalyst → RepairPlanner → SafetySteward trace and the
+Gemini 3.5+ model badge. Open `/api/adk/registry` briefly to prove these are
+versioned Google ADK agents with deny-by-default tool scopes. Emphasize that the
+fleet proposes a research action but still stops at the human approval gate.
 
 Click at least three different condition worlds and point to the different exact
 URN, owner, contract and six-call receipt for each. Then point to the live MCP search/entity/schema/lineage/query calls and the exact
