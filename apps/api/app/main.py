@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .config import get_settings
+from .adk_fleet import adk_runtime_status
 from .memory import InMemoryMissionRepository
 from .mission_service import MissionService
 from .models import ApprovalRequest, CommandRequest, StartMissionRequest
@@ -44,6 +45,12 @@ def capabilities() -> dict:
     return {"visible_agents": ["Evidence Scout", "Nano Designer", "Twin Simulator", "Safety Steward"],
             "inputs": ["text", "voice_gateway_planned", "synthetic_image_planned", "3d_selection"],
             "approval": {"voice_can_request": True, "voice_can_approve": False, "ui_confirmation_required": True}}
+
+
+@app.get("/api/agentic/adk/proof")
+def adk_proof() -> dict:
+    """Judge-facing topology proof. This endpoint never triggers a billable model call."""
+    return adk_runtime_status(settings.adk_enabled, settings.adk_model)
 
 
 @app.get("/api/nano/candidates")

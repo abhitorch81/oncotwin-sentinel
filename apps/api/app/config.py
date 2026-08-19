@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     google_cloud_project: str = ""
     google_cloud_location: str = "global"
     gemini_model: str = "gemini-2.5-flash"
+    adk_enabled: bool = False
+    adk_model: str = "gemini-2.5-flash"
     allowed_origins: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -24,4 +26,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
