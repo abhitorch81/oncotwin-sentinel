@@ -6,6 +6,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_env: str = "development"
     demo_mode: bool = True
+    app_name: str = "OncoTwin Sentinel: Living Evidence"
+    app_version: str = "12.0.0"
+    app_edition: str = "agentic-multimodal"
+    medical_use: str = "synthetic_research_only"
+    human_approval_required: bool = True
     allowed_origins: str = "http://localhost:8080"
 
     datahub_gms_url: str = "http://127.0.0.1:8080"
@@ -13,7 +18,7 @@ class Settings(BaseSettings):
     datahub_admin_token: str = ""
     datahub_mcp_command: str = "uvx"
     datahub_mcp_package: str = "mcp-server-datahub@latest"
-    tools_is_mutation_enabled: bool = True
+    tools_is_mutation_enabled: bool = False
 
     google_genai_use_vertexai: bool = True
     google_cloud_project: str = ""

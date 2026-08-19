@@ -25,7 +25,14 @@ from .models import AgentRunRequest, GenericMCPRequest, IncidentResolutionReques
 from .rl_simulation import mission_catalog
 
 settings = get_settings()
-app = FastAPI(title="OncoTwin Genome Helix Memory Intelligence", version="11.4.0")
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    description=(
+        "Agentic multimodal oncology digital twin for synthetic, "
+        "de-identified research demonstrations."
+    ),
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins,
@@ -53,11 +60,15 @@ async def index() -> FileResponse:
 async def health() -> dict[str, Any]:
     return {
         "ok": True,
-        "ui_version": "11.4.0",
+        "app_name": settings.app_name,
+        "ui_version": settings.app_version,
+        "edition": settings.app_edition,
         "mode": "demo" if settings.demo_mode else "live",
+        "medical_use": settings.medical_use,
         "datahub_gms_url": settings.datahub_gms_url,
         "analytics_agent_url": settings.analytics_agent_url,
         "mutations_enabled": settings.tools_is_mutation_enabled,
+        "human_approval_required": settings.human_approval_required,
     }
 
 
@@ -96,7 +107,7 @@ async def datahub_capabilities() -> dict[str, Any]:
             "server": settings.datahub_mcp_package,
             "read_tools": ["search", "get_entities", "list_schema_fields", "get_lineage", "get_dataset_queries"],
             "mutation_tools": ["update_description"],
-            "human_approval_required": True,
+            "human_approval_required": settings.human_approval_required,
         },
         "skills": ["datahub-search", "datahub-quality", "datahub-lineage", "datahub-enrich"],
         "agent_context_kit": {"framework": "LangChain", "llm": "optional narrator; core decisions are deterministic"},

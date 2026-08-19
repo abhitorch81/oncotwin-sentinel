@@ -13,9 +13,17 @@ client = TestClient(app)
 
 def test_health():
     response = client.get("/api/health")
+
     assert response.status_code == 200
-    assert response.json()["mode"] == "demo"
-    assert response.json()["ui_version"] == "11.4.0"
+
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["mode"] == "demo"
+    assert payload["ui_version"] == "12.0.0"
+    assert payload["edition"] == "agentic-multimodal"
+    assert payload["medical_use"] == "synthetic_research_only"
+    assert payload["mutations_enabled"] is False
+    assert payload["human_approval_required"] is True
 
 
 def test_launch_flow_guide_explains_the_real_agentic_memory_path():
