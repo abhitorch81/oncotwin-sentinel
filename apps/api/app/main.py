@@ -1,11 +1,13 @@
 import asyncio
 import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .config import get_settings
+from .adk_fleet import adk_runtime_status
+from .adk_runtime import AdkExecutionService, AdkTraceRepository
 from .memory import InMemoryMissionRepository
 from .mission_service import MissionService
 from .models import ApprovalRequest, CommandRequest, StartMissionRequest
@@ -19,13 +21,16 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.origins,
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 repository = InMemoryMissionRepository()
 service = MissionService(repository)
+adk_trace_repository = AdkTraceRepository()
+adk_execution = AdkExecutionService(adk_trace_repository)
 
 
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True, "app_name": settings.app_name, "ui_version": settings.app_version,
             "edition": "google-native-milestone-1", "mode": "demo" if settings.demo_mode else "live",
-            "medical_use": "synthetic_research_only", "human_approval_required": True}
+            "medical_use": "synthetic_research_only", "human_approval_required": True,
+            "adk_enabled": settings.adk_enabled}
 
 
 @app.get("/api/architecture/proof")
@@ -46,14 +51,63 @@ def capabilities() -> dict:
             "approval": {"voice_can_request": True, "voice_can_approve": False, "ui_confirmation_required": True}}
 
 
+@app.get("/api/agentic/adk/proof")
+def adk_proof() -> dict:
+    """Judge-facing topology proof. This endpoint never triggers a billable model call."""
+    return adk_runtime_status(settings.adk_enabled, settings.adk_model)
+
+
 @app.get("/api/nano/candidates")
 def candidates() -> list[dict]:
     return [candidate.__dict__ for candidate in DEFAULT_CANDIDATES]
 
 
 @app.post("/api/nano/missions/start")
-def start_mission(request: StartMissionRequest) -> dict:
-    return service.start(request.prompt).model_dump()
+async def start_mission(request: StartMissionRequest, background_tasks: BackgroundTasks) -> dict:
+    mission = service.start(request.prompt)
+    await adk_execution.prepare(mission.id, settings.adk_model, settings.adk_enabled)
+    if settings.adk_enabled:
+        background_tasks.add_task(adk_execution.run, mission.id, request.prompt, settings.adk_model)
+    return mission.model_dump()
+
+
+@app.get("/api/nano/missions/{mission_id}/adk-trace")
+async def adk_trace(mission_id: str) -> dict:
+    if not repository.get(mission_id):
+        raise HTTPException(404, "Mission not found")
+    trace = await adk_trace_repository.get(mission_id)
+    if not trace:
+        raise HTTPException(404, "ADK trace not initialized")
+    return trace.model_dump()
+
+
+@app.get("/api/nano/missions/{mission_id}/adk-events")
+async def adk_events(mission_id: str, request: Request) -> StreamingResponse:
+    """Stream privacy-safe ADK node/tool metadata to the 3D mission theatre."""
+    if not repository.get(mission_id):
+        raise HTTPException(404, "Mission not found")
+
+    async def stream():
+        cursor = 0
+        while True:
+            if await request.is_disconnected():
+                return
+            trace = await adk_trace_repository.get(mission_id)
+            if trace is None:
+                yield f"event: status\ndata: {json.dumps({'status': 'queued'})}\n\n"
+                await asyncio.sleep(.2)
+                continue
+            while cursor < len(trace.events):
+                event = trace.events[cursor]
+                cursor += 1
+                yield f"event: adk\ndata: {json.dumps(event.model_dump())}\n\n"
+            yield f"event: status\ndata: {json.dumps({'status': trace.status, 'model': trace.model})}\n\n"
+            if trace.status in {"disabled", "succeeded", "fallback"}:
+                return
+            await asyncio.sleep(.2)
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.get("/api/nano/missions/{mission_id}")

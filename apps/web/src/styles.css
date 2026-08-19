@@ -29,3 +29,39 @@ main { min-height:100vh; padding:0 22px 96px; position:relative; }
 @media(max-width:680px){main{padding:0 10px 110px}.topbar{height:62px}.truth-boundary{top:68px;width:max-content;max-width:94vw}.stage{padding-top:10px}.viewport{height:66vh;min-height:520px}.scene-heading{left:18px;top:56px}.scene-heading h1{font-size:32px}.clone-callout{display:none}.scene-key{left:18px;bottom:220px;flex-direction:column;gap:6px}.candidate-strip{left:8px;right:8px;bottom:8px;padding:7px}.candidates{gap:4px}.candidate{padding:6px}.candidate header{grid-template-columns:23px 1fr}.candidate header em{display:none}.metric{grid-template-columns:30px 1fr 15px}.approval-membrane{grid-template-columns:32px 1fr}.approval-membrane button{grid-column:1/-1;justify-content:center}.approval-membrane .lock{display:none}.command-capsule{bottom:18px;width:calc(100vw - 20px)}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;scroll-behavior:auto!important}}
 
+.trace-mode{font-size:7px;letter-spacing:.12em;color:#8190a2;display:flex;align-items:center;gap:6px}
+.trace-mode:before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor}
+.trace-mode.running,.trace-mode.queued{color:#5de7ff}
+.trace-mode.succeeded{color:#75ffbd}
+.trace-mode.fallback{color:#ffb35d}
+.tool-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.tool-badges span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid #57dff331;background:#57dff30a;color:#65dff1;border-radius:99px;padding:3px 6px;font-size:6px;letter-spacing:.06em;text-transform:uppercase}
+
+/* Milestone 1.1: evidence and authority never obscure each other. */
+.right-rail{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0}
+.right-rail .flight-recorder{padding:18px 15px;min-height:0}
+.right-rail .flight-recorder h2{font-size:18px;line-height:1.2;margin:11px 0 14px}
+.right-rail .agent-list{gap:7px}
+.right-rail .agent-card{padding:10px;min-height:76px}
+.right-rail .agent-card p{margin-top:5px;line-height:1.4}
+.right-rail .trace-proof{margin-top:10px;padding:8px}
+.right-rail .approval-membrane{
+  position:relative;left:auto;bottom:auto;transform:none;width:100%;z-index:4;
+  grid-template-columns:38px 1fr;padding:12px;gap:10px;
+  background:linear-gradient(110deg,#261609ed,#0a0d13f2 58%,#111017ef);
+  box-shadow:0 0 40px #ff9d3512;
+}
+.right-rail .approval-membrane button{grid-column:1/-1;justify-content:center}
+.right-rail .approval-membrane .lock{position:absolute;right:12px;top:12px}
+
+@media(max-width:1000px){
+  .right-rail{grid-template-rows:auto auto}
+  .right-rail .approval-membrane{grid-template-columns:38px 1fr auto 18px}
+  .right-rail .approval-membrane button{grid-column:auto}
+  .right-rail .approval-membrane .lock{position:static}
+}
+@media(max-width:680px){
+  .right-rail .approval-membrane{grid-template-columns:32px 1fr}
+  .right-rail .approval-membrane button{grid-column:1/-1}
+  .right-rail .approval-membrane .lock{display:none}
+}

@@ -36,7 +36,13 @@ function OrganGhost({ position, label, color }: { position: [number, number, num
   </group>
 }
 
-export function TwinScene({ onCloneSelect }: { onCloneSelect: () => void }) {
+const actionRank: Record<string, number> = {
+  focus_clone: 1, spawn_candidates: 2, run_particle_paths: 3,
+  reject_candidate: 4, show_approval_membrane: 5,
+}
+
+export function TwinScene({ onCloneSelect, sceneAction }: { onCloneSelect: () => void; sceneAction?: string }) {
+  const rank = actionRank[sceneAction || ''] || 0
   return <Canvas camera={{ position: [0, 1.1, 7.2], fov: 44 }} dpr={[1, 1.7]}>
     <color attach="background" args={['#030509']} />
     <fog attach="fog" args={['#030509', 7, 15]} />
@@ -44,11 +50,11 @@ export function TwinScene({ onCloneSelect }: { onCloneSelect: () => void }) {
     <directionalLight position={[4, 6, 6]} intensity={1.6} color="#8be9ff" />
     <Sparkles count={120} scale={[12, 7, 7]} size={1.2} speed={.25} color="#5de7ff" opacity={.2} />
     <Tumour onSelect={onCloneSelect} />
-    <NanoPath color="#44d7ff" offset={1.3} />
-    <NanoPath color="#ff3f61" offset={.35} rejected />
-    <NanoPath color="#75ffbd" offset={-1.0} />
-    <OrganGhost position={[3.1, 1.15, -1.2]} label="LIVER RISK" color="#ff985d" />
-    <OrganGhost position={[3.35, -1.3, -.7]} label="KIDNEY RISK" color="#b85cff" />
+    {rank >= 2 && <NanoPath color="#44d7ff" offset={1.3} />}
+    {rank >= 2 && <NanoPath color="#ff3f61" offset={.35} rejected />}
+    {rank >= 2 && <NanoPath color="#75ffbd" offset={-1.0} />}
+    {rank >= 3 && <OrganGhost position={[3.1, 1.15, -1.2]} label="LIVER RISK" color="#ff985d" />}
+    {rank >= 3 && <OrganGhost position={[3.35, -1.3, -.7]} label="KIDNEY RISK" color="#b85cff" />}
     <OrbitControls enablePan={false} minDistance={5} maxDistance={10} autoRotate autoRotateSpeed={.18} />
   </Canvas>
 }

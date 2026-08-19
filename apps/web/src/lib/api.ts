@@ -1,4 +1,4 @@
-import type { Mission } from '../types'
+import type { AdkTraceEvent, AdkTraceStatus, Mission } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -18,3 +18,21 @@ export async function approveMission(missionId: string): Promise<void> {
   if (!response.ok) throw new Error('Approval was denied')
 }
 
+export function streamAdkEvents(
+  missionId: string,
+  onEvent: (event: AdkTraceEvent) => void,
+  onStatus: (status: AdkTraceStatus) => void,
+  onTransportError: () => void,
+): () => void {
+  const source = new EventSource(`${API}/api/nano/missions/${missionId}/adk-events`)
+  source.addEventListener('adk', message => {
+    onEvent(JSON.parse((message as MessageEvent).data) as AdkTraceEvent)
+  })
+  source.addEventListener('status', message => {
+    const payload = JSON.parse((message as MessageEvent).data) as { status: AdkTraceStatus }
+    onStatus(payload.status)
+    if (['disabled', 'succeeded', 'fallback'].includes(payload.status)) source.close()
+  })
+  source.onerror = () => { source.close(); onTransportError() }
+  return () => source.close()
+}

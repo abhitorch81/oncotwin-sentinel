@@ -64,6 +64,28 @@ class Mission(BaseModel):
     approved_by: str | None = None
 
 
+class AdkTraceEvent(BaseModel):
+    sequence: int
+    author: str
+    visible_agent: str | None = None
+    node_name: str | None = None
+    event_type: str
+    tool_names: list[str] = Field(default_factory=list)
+    final_response: bool = False
+    phase: Literal["progress", "tool_call", "complete"] = "progress"
+    scene_action: str | None = None
+
+
+class AdkMissionTrace(BaseModel):
+    mission_id: str
+    status: Literal["disabled", "queued", "running", "succeeded", "fallback"]
+    workflow: str = "ADK2GraphWorkflow"
+    model: str
+    events: list[AdkTraceEvent] = Field(default_factory=list)
+    fallback_reason: str | None = None
+    model_call_executed: bool = False
+
+
 class StartMissionRequest(BaseModel):
     prompt: str = "Investigate the resistant red clone and find a safer nanoparticle delivery strategy."
 
