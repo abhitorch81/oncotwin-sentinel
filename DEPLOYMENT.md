@@ -227,8 +227,18 @@ Save `WRITEBACK_APPROVAL_SECRET` in your password manager; the judge operator en
 For the Cloud Run backend, replace the tunnel URL with the VM's private address automatically by running:
 
 ```bash
+# Optional Phase 3 native audio. Leave false for the browser-speech fallback.
+export GEMINI_LIVE_ENABLED=true
+export GEMINI_LIVE_USE_VERTEXAI=false
 bash scripts/05_deploy_oncotwin.sh
 ```
+
+When native audio is enabled with the Developer API, the deploy script binds
+`oncotwin-google-api-key` from Secret Manager to the backend only. The browser
+connects to `/api/agentic/live`; it never receives the key. Cloud Run's request
+timeout is set to 900 seconds while the application rotates Live sessions at
+840 seconds. See [docs/GEMINI_LIVE.md](docs/GEMINI_LIVE.md) for the audio and
+safety contract. To keep Gemini Live disabled, omit the two exports above.
 
 The command prints the public Cloud Run URL. Open it and confirm the header says:
 
@@ -325,7 +335,7 @@ curl -s "${APP_URL}/api/datahub/capabilities" | python3 -m json.tool
 
 Enter the approval secret and click **Approve once**. Verify the DataHub description changed. The proposal is removed after one commit and cannot be replayed.
 
-## 14B. Run the seven RL digital-twin cases
+## 14B. Run the twelve RL digital-twin cases
 
 The v6 mission deck contains:
 
@@ -336,13 +346,18 @@ The v6 mission deck contains:
 5. **Multi-omic Biomarker Discordance** — RNA/variant/protein conflict → biomarker quarantine → provenance reconciliation.
 6. **Protein Conformation Evidence Rift** — schematic structure-state provenance change → structure-score freeze.
 7. **Tumour Microenvironment Escape** — spatial immune-context shift → spatial review gate.
+8. **ctDNA MRD Rebound** — longitudinal liquid-biopsy rebound → orthogonal-validation gate.
+9. **Bispecific Safety Signal** — cytokine boundary crossing → non-clinical safety gate.
+10. **CAR-T Antigen Escape** — target-antigen loss → response-claim freeze.
+11. **Neoantigen Vaccine Drift** — clonal target drift → governed target refresh.
+12. **Radiopharmaceutical Target Mismatch** — imaging/tissue disagreement → theranostic-claim block.
 
-All seven cases use condition-specific live DataHub evidence and may execute a
+All twelve cases use condition-specific live DataHub evidence and may execute a
 narrow, human-approved condition-incident lifecycle on their own cataloged
 asset. The first case is the flagship full mutation: it additionally repairs
 BigQuery, validates the feature contract, writes durable DataHub documentation,
 tags and custom properties, and verifies the inherited knowledge through MCP.
-The biological response remains a research simulation in every case. All seven
+The biological response remains a research simulation in every case. All twelve
 record timestamped DataHub evidence, twin state, RL state/action/reward and
 approval events for safe replay.
 

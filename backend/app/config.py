@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
 
+    # Gemini Live is opt-in. The deterministic command router remains available
+    # when credentials, quota, model access or the realtime connection fail.
+    gemini_live_enabled: bool = False
+    gemini_live_use_vertexai: bool = False
+    gemini_live_model: str = "gemini-3.1-flash-live-preview"
+    gemini_live_voice: str = "Kore"
+    gemini_live_input_sample_rate: int = 16000
+    gemini_live_output_sample_rate: int = 24000
+    gemini_live_max_session_seconds: int = 840
+
     writeback_approval_secret: str = "change-me"
     analytics_agent_url: str = "http://localhost:8100"
     mission_store_path: str = "/tmp/oncotwin-missions"
@@ -62,6 +72,14 @@ class Settings(BaseSettings):
     @property
     def origins(self) -> list[str]:
         return [item.strip() for item in self.allowed_origins.split(",") if item.strip()]
+
+    @property
+    def gemini_live_ready(self) -> bool:
+        if not self.gemini_live_enabled:
+            return False
+        if self.gemini_live_use_vertexai:
+            return bool(self.google_cloud_project)
+        return bool(self.google_api_key)
 
 
 @lru_cache

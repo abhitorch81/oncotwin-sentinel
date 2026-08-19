@@ -230,6 +230,7 @@ Cloud Run scales to zero. Stopping the VM stops compute charges, while disk char
 - **DataHub Agent Context Kit** for agent-ready catalog tools.
 - **Official DataHub Skills** installed on the GCP VM for Gemini CLI (`datahub-search`, `datahub-quality`, `datahub-lineage`, `datahub-enrich`). The production Repair Engineer mirrors the same quality → lineage workflow using live MCP evidence and emits a context fingerprint with every generated artifact.
 - **Google Gemini** for grounded narration; Vertex AI credentials are used by the custom agents.
+- **Gemini Live native audio** through a backend-only WebSocket, with visible transcription, barge-in, deterministic Three.js commands and a browser voice fallback. See `docs/GEMINI_LIVE.md`.
 - **DataHub Analytics Agent** for natural-language → SQL → chart, context-quality scoring and `/improve-context` writeback.
 - **BigQuery** for analysis-ready scRNA summaries; raw matrices can remain in GCS.
 - **Governed mutations** using a single-use server-side proposal and a human approval secret.

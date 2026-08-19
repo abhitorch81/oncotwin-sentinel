@@ -20,12 +20,17 @@ def command(utterance: str, modality: str = "text", **overrides):
     return client.post("/api/agentic/commands", json=payload)
 
 
-def test_agentic_capabilities_are_honest_about_active_and_planned_lanes():
+def test_agentic_capabilities_are_honest_about_live_and_fallback_lanes():
     response = client.get("/api/agentic/capabilities")
     assert response.status_code == 200
     payload = response.json()
     assert payload["signature_demo"] == "Show me why the resistant clone is red."
-    assert payload["lanes"]["gemini_live"].startswith("planned integration")
+    live = payload["lanes"]["gemini_live"]
+    assert live["status"] in {"disabled", "configuration_required", "ready"}
+    assert live["transport"] == "backend_websocket"
+    assert live["fallback"] == "browser_speech_plus_local_fast"
+    assert live["input_audio"] == "audio/pcm;rate=16000"
+    assert live["output_audio"] == "audio/pcm;rate=24000"
     assert payload["safety"]["voice_approval_allowed"] is False
     assert payload["safety"]["external_mutations_from_command_router"] is False
 
@@ -93,6 +98,8 @@ def test_multimodal_ui_connects_voice_text_and_threejs_without_autoclicking_appr
     assert 'id="twin3d"' in html
     assert "SpeechRecognition" in agentic_js
     assert "speechSynthesis" in agentic_js
+    assert "AudioWorkletNode" in agentic_js
+    assert "/api/agentic/live" in agentic_js
     assert "/api/agentic/commands" in agentic_js
     assert "oncotwin:agentic-action" in app_js
     assert "focusClone" in evolution_js

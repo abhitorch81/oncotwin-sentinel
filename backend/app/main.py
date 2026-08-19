@@ -18,6 +18,7 @@ from .data_scope import governed_dataset_urn
 from .datahub_graphql import DataHubGraphQL
 from .demo_data import DEMO_COHORTS, DEMO_SCATTER, DEMO_TWIN
 from .governed_repair import DataHubKnowledgeWriteback, GovernedFeatureRepair
+from .gemini_live import build_gemini_live_router
 from .mission_control import MissionManager
 from .memory_routes import router as memory_router
 from .evolution_routes import router as evolution_router
@@ -58,7 +59,8 @@ mission_manager = MissionManager(settings)
 app.include_router(memory_router)
 app.include_router(evolution_router)
 app.include_router(cockroach_ops_router)
-app.include_router(build_agentic_router(mission_manager))
+app.include_router(build_agentic_router(mission_manager, settings))
+app.include_router(build_gemini_live_router(settings, mission_manager))
 
 
 def authorize_external_mutation(operation: str, approval_secret: str | None) -> None:
@@ -98,6 +100,12 @@ async def health() -> dict[str, Any]:
         "bigquery_dataset": settings.bigquery_dataset,
         "mutations_enabled": settings.tools_is_mutation_enabled,
         "human_approval_required": settings.human_approval_required,
+        "gemini_live": {
+            "enabled": settings.gemini_live_enabled,
+            "ready": settings.gemini_live_ready,
+            "model": settings.gemini_live_model,
+            "transport": "backend_websocket",
+        },
         "mutation_policy": mutation_policy_snapshot(settings),
     }
 

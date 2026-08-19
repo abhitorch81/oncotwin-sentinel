@@ -379,7 +379,7 @@
   </div>
 
   <section id="agenticCommandCenter" class="agentic-command-center" aria-label="Talk to the OncoTwin multimodal command router">
-    <header><div class="agentic-orb" aria-hidden="true"><i></i><i></i><i></i></div><span><small>TALK TO THE TWIN</small><b>Multimodal Command Center</b></span><div class="agentic-lanes"><em id="agenticLane">LOCAL FAST LANE</em><em class="planned">GEMINI LIVE · NEXT</em></div><button id="agenticCollapse" type="button" aria-label="Collapse command center">—</button></header>
+    <header><div class="agentic-orb" aria-hidden="true"><i></i><i></i><i></i></div><span><small>TALK TO THE TWIN</small><b>Multimodal Command Center</b></span><div class="agentic-lanes"><em id="agenticLane">LOCAL FAST LANE</em><em id="agenticLiveBadge" class="planned">GEMINI LIVE · CHECKING</em></div><button id="agenticCollapse" type="button" aria-label="Collapse command center">—</button></header>
     <div class="agentic-body">
       <div class="agentic-prompts" aria-label="Example commands"><button type="button" data-agentic-prompt="Show me why the resistant clone is red.">Why is the clone red?</button><button type="button" data-agentic-prompt="Focus on the lung.">Focus anatomy</button><button type="button" data-agentic-prompt="Compare the resistance scenarios.">Compare scenarios</button><button type="button" data-agentic-prompt="Start an investigation.">Investigate</button></div>
       <form id="agenticForm"><button id="agenticMic" class="agentic-mic" type="button" aria-label="Start voice input"><span>◉</span></button><label><span class="sr-only">Ask the digital twin</span><input id="agenticInput" type="text" maxlength="1000" autocomplete="off" placeholder="Ask the twin to focus, explain, compare or investigate…"></label><button id="agenticSend" type="submit">Send <span>↗</span></button></form>
@@ -393,6 +393,6 @@
 
   <script type="importmap">{"imports":{"three":"/assets/vendor/three.module.min.js","three/addons/":"/assets/vendor/addons/"}}</script>
   <script type="module" src="/assets/app.js?v=12.0.0"></script>
-  <script type="module" src="/assets/agentic-multimodal.js?v=12.0.0"></script>
+  <script type="module" src="/assets/agentic-multimodal.js?v=12.1.0"></script>
 </body>
 </html>
