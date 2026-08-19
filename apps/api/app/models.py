@@ -72,6 +72,8 @@ class AdkTraceEvent(BaseModel):
     event_type: str
     tool_names: list[str] = Field(default_factory=list)
     final_response: bool = False
+    phase: Literal["progress", "tool_call", "complete"] = "progress"
+    scene_action: str | None = None
 
 
 class AdkMissionTrace(BaseModel):

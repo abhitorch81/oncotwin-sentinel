@@ -9,6 +9,7 @@ from .models import AdkMissionTrace, AdkTraceEvent
 
 
 VISIBLE_BY_NODE = {item["name"]: item["visible_name"] for item in VISIBLE_AGENTS}
+SCENE_BY_NODE = {item["name"]: item["scene_action"] for item in VISIBLE_AGENTS}
 
 
 def _node_name(event: Any) -> str | None:
@@ -39,14 +40,18 @@ def _tool_names(event: Any) -> list[str]:
 def translate_adk_event(event: Any, sequence: int) -> AdkTraceEvent:
     node = _node_name(event)
     final_check = getattr(event, "is_final_response", None)
+    final_response = bool(final_check()) if callable(final_check) else False
+    tool_names = _tool_names(event)
     return AdkTraceEvent(
         sequence=sequence,
         author=str(getattr(event, "author", "adk_runtime")),
         visible_agent=VISIBLE_BY_NODE.get(node or ""),
         node_name=node,
         event_type=type(event).__name__,
-        tool_names=_tool_names(event),
-        final_response=bool(final_check()) if callable(final_check) else False,
+        tool_names=tool_names,
+        final_response=final_response,
+        phase="complete" if final_response else "tool_call" if tool_names else "progress",
+        scene_action=SCENE_BY_NODE.get(node or "") if tool_names else None,
     )
 
 
@@ -117,4 +122,3 @@ class AdkExecutionService:
             trace.status = "fallback"
             trace.fallback_reason = type(exc).__name__
             await self.repository.save(trace)
-

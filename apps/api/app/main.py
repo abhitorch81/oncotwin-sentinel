@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -79,6 +79,35 @@ async def adk_trace(mission_id: str) -> dict:
     if not trace:
         raise HTTPException(404, "ADK trace not initialized")
     return trace.model_dump()
+
+
+@app.get("/api/nano/missions/{mission_id}/adk-events")
+async def adk_events(mission_id: str, request: Request) -> StreamingResponse:
+    """Stream privacy-safe ADK node/tool metadata to the 3D mission theatre."""
+    if not repository.get(mission_id):
+        raise HTTPException(404, "Mission not found")
+
+    async def stream():
+        cursor = 0
+        while True:
+            if await request.is_disconnected():
+                return
+            trace = await adk_trace_repository.get(mission_id)
+            if trace is None:
+                yield f"event: status\ndata: {json.dumps({'status': 'queued'})}\n\n"
+                await asyncio.sleep(.2)
+                continue
+            while cursor < len(trace.events):
+                event = trace.events[cursor]
+                cursor += 1
+                yield f"event: adk\ndata: {json.dumps(event.model_dump())}\n\n"
+            yield f"event: status\ndata: {json.dumps({'status': trace.status, 'model': trace.model})}\n\n"
+            if trace.status in {"disabled", "succeeded", "fallback"}:
+                return
+            await asyncio.sleep(.2)
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.get("/api/nano/missions/{mission_id}")

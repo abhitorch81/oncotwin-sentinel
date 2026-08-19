@@ -7,6 +7,21 @@ export interface AgentEvent {
   summary: string
   evidence_ids: string[]
   scene_action?: string
+  tool_names?: string[]
+}
+
+export type AdkTraceStatus = 'disabled' | 'queued' | 'running' | 'succeeded' | 'fallback'
+
+export interface AdkTraceEvent {
+  sequence: number
+  author: string
+  visible_agent: AgentName | null
+  node_name: string | null
+  event_type: string
+  tool_names: string[]
+  final_response: boolean
+  phase: 'progress' | 'tool_call' | 'complete'
+  scene_action?: string | null
 }
 
 export interface CandidateResult {
@@ -37,4 +52,3 @@ export interface Mission {
     receipt_sha256: string
   }
 }
-

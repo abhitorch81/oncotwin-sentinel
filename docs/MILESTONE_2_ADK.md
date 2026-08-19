@@ -31,3 +31,9 @@ curl -s http://127.0.0.1:8000/api/nano/missions/MISSION_ID/adk-trace | python3 -
 ```
 
 Trace status moves through `queued`, `running`, and `succeeded`. Authentication, model, or runtime failure becomes `fallback` while the working deterministic mission remains available.
+
+## Slice 3: visible Living Evidence stream
+
+The API exposes `GET /api/nano/missions/{mission_id}/adk-events` as an SSE stream. The browser translates each privacy-safe event into a visible agent status, bounded-tool badge, and 3D scene action. Candidate evidence and approval remain hidden until the live workflow succeeds. If the stream reports `disabled` or `fallback`, the existing deterministic presentation takes over automatically.
+
+The UI provenance badge distinguishes `GEMINI · LIVE`, `GEMINI · VERIFIED`, `SAFE FALLBACK`, and `LOCAL TRACE`; it never presents fallback events as live Gemini work.
