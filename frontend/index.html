@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="OncoTwin V11.4 — persistent cancer evolution memory with a verifiable CockroachDB operations agent" />
-  <title>OncoTwin V11.4 · CockroachDB Operations Agent</title>
+  <meta name="description" content="OncoTwin Sentinel — a safe, multimodal oncology research digital twin with governed agent investigations" />
+  <title>OncoTwin Sentinel · Living Evidence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
@@ -12,12 +12,13 @@
   <link rel="stylesheet" href="/assets/evolution.css?v=11.3.0" />
   <link rel="stylesheet" href="/assets/helix.css?v=11.3.0" />
   <link rel="stylesheet" href="/assets/cockroach_ops.css?v=11.4.0" />
+  <link rel="stylesheet" href="/assets/agentic-multimodal.css?v=12.0.0" />
 </head>
 <body>
   <header class="app-header">
     <div class="brand">
       <span class="brand-mark">⌬</span>
-        <div><strong>OncoTwin <em>V11.4</em></strong><small>COCKROACHDB AGENTIC MEMORY · EVIDENCE, OPERATIONS AND EVOLUTION</small></div>
+        <div><strong>OncoTwin Sentinel <em>V12</em></strong><small>LIVING EVIDENCE · MULTIMODAL AGENTS · HUMAN-GATED RESEARCH</small></div>
     </div>
     <nav class="view-tabs" aria-label="Application views">
       <button class="tab active" data-view="mission">Live Mission</button>
@@ -131,6 +132,7 @@
       <section id="view-twin" class="app-view">
         <article class="view-intro"><span class="eyebrow">DECISION FORGE · HUMAN-GATED RESEARCH OPERATIONS</span><h1>Do not just predict. <em>Decide responsibly.</em></h1><p>One surface fuses current cancer evidence, distributed memory, agent disagreement and counterfactual actions into an auditable decision.</p></article>
         <div class="decision-forge">
+          <article class="panel agentic-twin-stage"><div class="section-bar"><span>VOICE-CONTROLLABLE 3D ANATOMY</span><b id="twinRenderer">○ STANDBY</b></div><canvas id="twin3d" aria-label="Interactive synthetic anatomy digital twin"></canvas><div class="agentic-twin-hud"><span><small>SPECIMEN</small><b id="twinSpecimen">Synthetic lung</b></span><span><small>ANATOMY</small><b id="twinAnatomy">LUNG</b></span><span><small>TIMEPOINT</small><b id="twinStage">Loading</b></span><span><small>FOCUS</small><b id="twinSelection">Say “focus on the lung”</b></span></div><div class="agentic-twin-tools"><button type="button" data-twin-command="rotate">Rotate</button><button type="button" data-twin-command="cross-section">Cross-section</button><button type="button" data-twin-command="layers">Cell layers</button><button type="button" data-twin-command="reset">Reset</button></div></article>
           <article class="panel decision-brief"><div class="section-bar"><span>CURRENT DECISION</span><b id="decisionTopic">SELECT A MISSION</b></div><small id="decisionFreshness">EVIDENCE FRESHNESS · —</small><h2 id="decisionTitle">Trial Data Integrity Crisis</h2><p id="decisionQuestion">Can this evidence safely enter the research model?</p><button id="decisionRun" class="launch">▷ Run this decision</button></article>
           <article class="panel decision-memory"><div class="section-bar"><span>COCKROACHDB MEMORY ECHO</span><b id="decisionMemoryStatus">READY</b></div><p id="decisionMemoryQuery">Select a mission to recall related agent memory.</p><div id="decisionMemoryEcho" class="memory-echo">The forge will search persistent memory by meaning through AWS Lambda + FastEmbed.</div></article>
           <article class="panel decision-council"><div class="section-bar"><span>AGENT COUNCIL</span><b>3 VOTES</b></div><div id="decisionCouncil" class="council-votes"></div></article>
@@ -376,9 +378,21 @@
     </aside>
   </div>
 
+  <section id="agenticCommandCenter" class="agentic-command-center" aria-label="Talk to the OncoTwin multimodal command router">
+    <header><div class="agentic-orb" aria-hidden="true"><i></i><i></i><i></i></div><span><small>TALK TO THE TWIN</small><b>Multimodal Command Center</b></span><div class="agentic-lanes"><em id="agenticLane">LOCAL FAST LANE</em><em class="planned">GEMINI LIVE · NEXT</em></div><button id="agenticCollapse" type="button" aria-label="Collapse command center">—</button></header>
+    <div class="agentic-body">
+      <div class="agentic-prompts" aria-label="Example commands"><button type="button" data-agentic-prompt="Show me why the resistant clone is red.">Why is the clone red?</button><button type="button" data-agentic-prompt="Focus on the lung.">Focus anatomy</button><button type="button" data-agentic-prompt="Compare the resistance scenarios.">Compare scenarios</button><button type="button" data-agentic-prompt="Start an investigation.">Investigate</button></div>
+      <form id="agenticForm"><button id="agenticMic" class="agentic-mic" type="button" aria-label="Start voice input"><span>◉</span></button><label><span class="sr-only">Ask the digital twin</span><input id="agenticInput" type="text" maxlength="1000" autocomplete="off" placeholder="Ask the twin to focus, explain, compare or investigate…"></label><button id="agenticSend" type="submit">Send <span>↗</span></button></form>
+      <div class="agentic-result"><div><small id="agenticIntent">READY · VOICE + TEXT + 3D</small><p id="agenticResponse">Try the judge moment: “Show me why the resistant clone is red.”</p></div><button id="agenticSpeak" type="button" aria-label="Toggle spoken responses">VOICE ON</button></div>
+      <div id="agenticEvidence" class="agentic-evidence" hidden></div>
+      <footer><span><i></i> SYNTHETIC RESEARCH ONLY</span><span>VOICE CAN NEVER APPROVE</span><span id="agenticLatency">NO COMMAND YET</span></footer>
+    </div>
+  </section>
+
   <footer><span>CockroachDB MCP · ccloud · Agent Skills · Distributed Vector Index · AWS Lambda · FastEmbed/BGE</span><a id="analyticsLink" href="http://localhost:8100" target="_blank" rel="noreferrer">Open Analytics Agent ↗</a></footer>
 
   <script type="importmap">{"imports":{"three":"/assets/vendor/three.module.min.js","three/addons/":"/assets/vendor/addons/"}}</script>
-  <script type="module" src="/assets/app.js?v=11.4.1"></script>
+  <script type="module" src="/assets/app.js?v=12.0.0"></script>
+  <script type="module" src="/assets/agentic-multimodal.js?v=12.0.0"></script>
 </body>
 </html>

@@ -431,6 +431,10 @@ export function createTwin3D(canvas, config, callbacks={}) {
     setStage(stageIndex,'cohort');
     const hd=anatomyModels.get(kind); if(hd)snapLesionsToSurface(hd,kind);
   }
+  function focusAnatomy(nextKind='lung'){
+    if(!['lung','heart','liver','kidney'].includes(nextKind))return false;
+    kind=nextKind; compare=false; loadAnatomy(kind); activateSpecimen(kind); resetCamera(); return true;
+  }
   function setStage(index,source='ui'){
     stageIndex=Math.max(0,Math.min(config.stages.length-1,Number(index)||0));
     const stage=config.stages[stageIndex];
@@ -485,5 +489,5 @@ export function createTwin3D(canvas, config, callbacks={}) {
   }
 
   positionLesions(); setTissueMode(); setStage(3,'boot'); loadAnatomy('lung'); renderer.setAnimationLoop(frame); callbacks.onSpecimen?.('Pulmones · loading HD','lung'); callbacks.onReady?.({version:webglVersion});
-  return {setStage,setCohort,pulse,command,resetCamera,getState(){return{kind,stageIndex,layersVisible,crossSection,compare,isolated,autoRotate:controls.autoRotate}},destroy(){disposed=true;renderer.setAnimationLoop(null);observer.disconnect();controls.dispose();canvas.removeEventListener('webglcontextlost',onContextLost);studioEnvironment.dispose();renderer.dispose()}};
+  return {setStage,setCohort,focusAnatomy,pulse,command,resetCamera,getState(){return{kind,stageIndex,layersVisible,crossSection,compare,isolated,autoRotate:controls.autoRotate}},destroy(){disposed=true;renderer.setAnimationLoop(null);observer.disconnect();controls.dispose();canvas.removeEventListener('webglcontextlost',onContextLost);studioEnvironment.dispose();renderer.dispose()}};
 }

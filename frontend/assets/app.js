@@ -137,6 +137,8 @@ function wireStaticEvents(){
   $('syncObservatory').addEventListener('click',syncObservatory);$('injectIncident').addEventListener('click',injectObservatoryIncident);$('previewRepair').addEventListener('click',previewObservatoryRepair);$('rewindObservatory').addEventListener('click',rewindObservatory);document.querySelectorAll('[data-observatory-case]').forEach(button=>button.addEventListener('click',()=>selectObservatoryCase(button.dataset.observatoryCase)));
   $('refreshMemory').addEventListener('click',()=>ensureMemoryPanel(true));$('searchMemory').addEventListener('click',searchPersistentMemory);$('embedMemory').addEventListener('click',embedPersistentMemory);$('memoryQuery').addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key==='Enter')searchPersistentMemory()});
   $('openFlowGuide')?.addEventListener('click',()=>openFlowGuide(0));$('flowGuideClose')?.addEventListener('click',()=>closeFlowGuide(true));$('flowGuideSkip')?.addEventListener('click',()=>closeFlowGuide(true));$('flowGuideBack')?.addEventListener('click',()=>showFlowGuideStep(flowGuideIndex-1));$('flowGuideNext')?.addEventListener('click',()=>flowGuideIndex===flowGuideSteps.length-1?closeFlowGuide(true):showFlowGuideStep(flowGuideIndex+1));document.querySelector('[data-flow-close]')?.addEventListener('click',()=>closeFlowGuide(true));document.addEventListener('keydown',handleFlowGuideKeys);
+  document.querySelectorAll('[data-twin-command]').forEach(button=>button.addEventListener('click',()=>{const result=state.twin?.command(button.dataset.twinCommand);button.classList.toggle('active',Boolean(result?.active))}));
+  window.addEventListener('oncotwin:agentic-action',event=>handleAgenticAction(event.detail));
 }
 
 function scheduleFlowGuide(){
@@ -166,13 +168,44 @@ function switchView(view){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
   document.querySelectorAll('.app-view').forEach(x=>x.classList.toggle('active',x.id===`view-${view}`));
   window.scrollTo({top:0,behavior:'smooth'});
-  if(view==='twin') setTimeout(()=>renderDecisionForge(),80);
+  if(view==='twin') setTimeout(()=>{renderDecisionForge();ensureTwin()},80);
   if(view==='evolution') setTimeout(()=>ensureEvolutionLab(),80);
   if(view==='helix') setTimeout(()=>ensureGenomeHelix(),80);
   if(view==='memory') setTimeout(()=>ensureMemoryPanel(),80);
   if(view==='proof') setTimeout(()=>ensureProofGalaxy(),80);
   if(view==='graph') setTimeout(()=>ensureObservatory(),80);
   if(view==='ops') setTimeout(()=>initCockroachOps(),80);
+}
+
+async function ensureTwin(){
+  if(state.twin)return state.twin;
+  const canvas=$('twin3d');if(!canvas||!state.twinConfig)return null;
+  try{
+    const {createTwin3D}=await import('./twin3d.js?v=12.0.0');
+    state.twin=createTwin3D(canvas,state.twinConfig,{onReady:info=>{$('twinRenderer').textContent=`● ${info.version} · COMMAND READY`},onSpecimen:(label,kind)=>{$('twinSpecimen').textContent=label;$('twinAnatomy').textContent=kind.toUpperCase()},onSelect:lesion=>{$('twinSelection').textContent=`${lesion.label} · risk ${Number(lesion.risk).toFixed(2)}`},onStage:stage=>{$('twinStage').textContent=stage.label||`Stage ${stage.index??''}`}});
+    state.twin.setCohort(state.cohort?.code||'LUAD');return state.twin;
+  }catch(error){$('twinRenderer').textContent='× 3D ENGINE UNAVAILABLE';$('twinSelection').textContent=error.message;return null}
+}
+
+async function handleAgenticAction(action={}){
+  if(action.type==='switch_view'){switchView(action.view);return}
+  if(action.type==='focus_clone'){
+    switchView('evolution');const graph=await ensureEvolutionLab();if(!graph||!state.evolutionGraph)return;
+    const clones=state.evolutionGraph.clones||[];const preferred=clones.find(item=>String(item.clone_label).toLowerCase().includes('met'));
+    const clone=preferred||clones.slice().sort((a,b)=>Number(b.risk_score)-Number(a.risk_score))[0];
+    if(clone){state.evolution.focusClone(clone.clone_id);$('evolutionRenderer').classList.add('agentic-focus');setTimeout(()=>$('evolutionRenderer').classList.remove('agentic-focus'),1600)}return;
+  }
+  if(action.type==='focus_anatomy'){switchView('twin');const twin=await ensureTwin();twin?.focusAnatomy(action.anatomy);return}
+  if(action.type==='set_timepoint'){
+    switchView('evolution');await ensureEvolutionLab();const generation=Math.max(0,Math.min(Number($('evolutionSlider').max||3),Number(action.generation)||0));$('evolutionSlider').value=generation;$('evolutionGeneration').textContent=generation;state.evolution?.setGeneration(generation);return;
+  }
+  if(action.type==='compare_scenarios'){switchView('evolution');await ensureEvolutionLab();$('evolutionProjection').scrollIntoView({behavior:'smooth',block:'center'});return}
+  if(action.type==='open_approval_panel'){switchView('mission');$('writeback').classList.add('agentic-focus');$('writeback').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>$('writeback').classList.remove('agentic-focus'),2200);return}
+  if(action.type==='show_mission'&&action.mission_id){
+    state.missionId=action.mission_id;$('missionStatus').textContent=`Mission ${action.mission_id} ready · loading governed trace`;
+    try{const mission=await fetch(`/api/missions/${action.mission_id}`,{cache:'no-store'}).then(checkJson);state.missionEvents=mission.events||[];$('missionTimeline').innerHTML='';mission.events.forEach(event=>applyMissionEvent(event,false));const awaiting=mission.status==='awaiting_approval';$('approveMission').disabled=!awaiting;$('writebackGate').textContent=awaiting?'APPROVAL REQUIRED':mission.status.toUpperCase();$('missionStatus').textContent=awaiting?'Investigation ready · stopped at visible human gate':`Mission ${mission.status}`}
+    catch(error){$('missionStatus').textContent=`Mission captured; trace unavailable: ${error.message}`}return;
+  }
 }
 
 async function ensureObservatory(){

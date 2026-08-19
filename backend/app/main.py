@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .agent_workflow import CancerContextMission
+from .agentic_router import build_agentic_router
 from .config import get_settings
 from .condition_registry import CONDITION_REGISTRY, condition
 from .data_scope import governed_dataset_urn
@@ -57,6 +58,7 @@ mission_manager = MissionManager(settings)
 app.include_router(memory_router)
 app.include_router(evolution_router)
 app.include_router(cockroach_ops_router)
+app.include_router(build_agentic_router(mission_manager))
 
 
 def authorize_external_mutation(operation: str, approval_secret: str | None) -> None:
