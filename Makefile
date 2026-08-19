@@ -1,19 +1,15 @@
-.PHONY: install run test smoke zip
+.PHONY: api web test check
 
-install:
-	python3 -m venv .venv
-	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -r requirements.txt
+api:
+	uvicorn apps.api.app.main:app --reload --port 8000
 
-run:
-	.venv/bin/uvicorn backend.app.main:app --reload --port 8080
+web:
+	cd apps/web && npm run dev
 
 test:
-	.venv/bin/pytest -q
+	python3 -m unittest discover -s apps/api/tests -v
 
-smoke:
-	bash scripts/07_smoke_test.sh
-
-zip:
-	cd .. && zip -qr oncotwin-datahub-complete.zip oncotwin-datahub-complete -x '*/.venv/*' '*/__pycache__/*' '*/.env'
+check:
+	python3 -m compileall -q apps/api/app
+	python3 -m unittest discover -s apps/api/tests -v
 

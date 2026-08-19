@@ -1,8 +1,0 @@
-engines:
-  - type: bigquery
-    name: oncotwin-cancer-analytics
-    connection:
-      project: "${BIGQUERY_PROJECT}"
-      dataset: "${BIGQUERY_DATASET}"
-      credentials_json: "${BIGQUERY_CREDENTIALS_JSON}"
-

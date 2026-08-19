@@ -1,0 +1,16 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+pydantic-settings>=2.8,<3
+httpx>=0.28,<1
+mcp>=1.9,<2
+google-genai>=1.20,<2
+google-auth>=2.40,<3
+google-cloud-bigquery>=3.35,<4
+langchain>=0.3,<2
+langchain-google-genai>=2.1,<4
+datahub-agent-context[langchain]>=0.1
+acryl-datahub>=1.1,<2
+pytest>=8.3,<9
+sqlalchemy>=2.0,<3
+sqlalchemy-cockroachdb>=2.0,<3
+psycopg2-binary>=2.9,<3

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oncotwin.dev/contracts/mission.schema.json",
+  "title": "OncoTwin Nano Mission",
+  "type": "object",
+  "required": ["id", "prompt", "state", "events", "receipt"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^nano-" },
+    "prompt": { "type": "string", "minLength": 10 },
+    "state": { "enum": ["running", "awaiting_human_approval", "approved", "failed"] },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "receipt": { "type": "object" }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "required": ["sequence", "agent", "status", "summary"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1 },
+        "agent": { "enum": ["Evidence Scout", "Nano Designer", "Twin Simulator", "Safety Steward"] },
+        "status": { "enum": ["working", "complete", "blocked"] },
+        "summary": { "type": "string" },
+        "scene_action": { "enum": ["focus_clone", "spawn_candidates", "run_particle_paths", "reject_candidate", "show_approval_membrane"] }
+      }
+    }
+  }
+}
+

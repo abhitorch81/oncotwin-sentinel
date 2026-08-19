@@ -1,0 +1,79 @@
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+AgentName = Literal["Evidence Scout", "Nano Designer", "Twin Simulator", "Safety Steward"]
+MissionState = Literal["running", "awaiting_human_approval", "approved", "failed"]
+
+
+class Candidate(BaseModel):
+    id: str
+    name: str
+    particle_size_nm: float
+    surface_charge_mv: float
+    ligand_affinity: float = Field(ge=0, le=1)
+    stealth_score: float = Field(ge=0, le=1)
+    release_half_life_hours: float
+    biodegradability: float = Field(ge=0, le=1)
+
+
+class SimulationResult(BaseModel):
+    candidate: Candidate
+    tumour_penetration: float
+    tumour_payload_release: float
+    liver_accumulation: float
+    kidney_accumulation: float
+    evidence_confidence: float
+    safety_margin: float
+    decision: Literal["preferred", "acceptable", "rejected"]
+    reason: str
+
+
+class AgentEvent(BaseModel):
+    sequence: int
+    agent: AgentName
+    status: Literal["working", "complete", "blocked"]
+    summary: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    scene_action: str | None = None
+
+
+class MissionReceipt(BaseModel):
+    mission_id: str
+    created_at: str
+    prompt: str
+    synthetic_research_only: bool = True
+    results: list[SimulationResult]
+    preferred_candidate_id: str
+    rejected_candidate_ids: list[str]
+    evidence_ids: list[str]
+    prior_memory_used: list[str]
+    policy_version: str
+    receipt_sha256: str
+
+
+class Mission(BaseModel):
+    id: str
+    prompt: str
+    state: MissionState
+    created_at: str
+    events: list[AgentEvent]
+    receipt: MissionReceipt | None = None
+    approval_requested: bool = False
+    approved_by: str | None = None
+
+
+class StartMissionRequest(BaseModel):
+    prompt: str = "Investigate the resistant red clone and find a safer nanoparticle delivery strategy."
+
+
+class CommandRequest(BaseModel):
+    command: str
+    channel: Literal["text", "voice", "scene"] = "text"
+
+
+class ApprovalRequest(BaseModel):
+    actor: str
+    channel: Literal["ui", "voice", "api"] = "ui"
+    confirmation: str

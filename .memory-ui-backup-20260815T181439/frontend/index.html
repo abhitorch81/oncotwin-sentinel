@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="OncoTwin 3D — DataHub-powered cancer ML guardian" />
+  <title>OncoTwin 3D · DataHub Cancer ML Guardian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css?v=10.1.0" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">⌬</span>
+        <div><strong>OncoTwin <em>3D</em></strong><small>V10.0 · SEVEN DATAHUB-NATIVE CANCER CONTEXT TWINS</small></div>
+    </div>
+    <nav class="view-tabs" aria-label="Application views">
+      <button class="tab active" data-view="mission">Live Mission</button>
+      <button class="tab" data-view="twin">Cancer Twin</button>
+      <button class="tab" data-view="scrna">scRNA</button>
+      <button class="tab" data-view="graph">Causal Observatory</button>
+      <button class="tab" data-view="proof">Proof Galaxy</button>
+      <button class="tab" data-view="fix">Generated Fix</button>
+    </nav>
+    <div class="header-actions"><span id="modeBadge" class="datahub-badge">◉ DataHub connecting</span></div>
+  </header>
+
+  <div class="challenge-ribbon">
+    <b>BUILD WITH DATAHUB</b><span>AGENTS THAT DO REAL WORK</span><i>+</i><span>PRODUCTION ML AGENTS</span><i>+</i><span>METADATA-AWARE CODE GEN</span>
+  </div>
+
+  <div class="app-shell">
+    <aside class="cohort-rail rail-panel">
+      <div class="rail-title"><span>7 CANCER COHORTS</span><b>LIVE</b></div>
+      <div id="cohortList" class="cohort-list"><div class="rail-loading">Loading cohort context…</div></div>
+      <div class="research-note"><b>♢ &nbsp; Research-only demo</b><p>Public cohort concepts; no patient diagnosis or treatment advice.</p></div>
+    </aside>
+
+    <main class="workspace">
+      <section id="view-mission" class="app-view active">
+        <article class="mission-hero panel">
+          <div><span class="eyebrow">JUDGE MODE · RL DIGITAL TWIN + INTERACTIVE AGENT THEATRE</span><h1>Watch context become <em>safe action.</em></h1><p>Choose a failure, let the RL safety controller observe DataHub-grounded context, then follow every decision through recovery or replay.</p><button id="runMission" class="launch"><span>▷</span> Run selected mission</button></div>
+          <div class="incident-card"><small>◉ ACTIVE INCIDENT</small><strong id="incidentCode">LUAD</strong><b id="incidentText">RNA-seq freshness breach</b><span id="incidentModel">luad_progression_v3</span></div>
+        </article>
+
+        <article class="mission-deck panel">
+          <div class="section-bar"><span>RL DIGITAL TWIN MISSIONS · RESEARCH-ONLY SAFETY SIMULATION</span><div class="mission-mode"><button id="liveMode" class="active">● LIVE</button><button id="replayMission" disabled>▶ VERIFIED REPLAY</button></div></div>
+          <div id="missionCaseGrid" class="mission-case-grid">
+            <button class="mission-case active" data-case="feature_quality"><i>01</i><span><b>Biomarker Completeness Crisis · LIVE WRITE</b><small>Missing biomarker signals → ML safety block</small></span></button>
+            <button class="mission-case" data-case="cancer_progression"><i>02</i><span><b>Tumour-State Progression Surge · LIVE DATAHUB</b><small>Catalog state table → governed review</small></span></button>
+            <button class="mission-case" data-case="model_drift"><i>03</i><span><b>Cancer Cohort Drift · LIVE DATAHUB</b><small>Catalog drift table → retrain gate</small></span></button>
+            <button class="mission-case" data-case="schema_mutation"><i>04</i><span><b>Genomic Schema Mutation · LIVE DATAHUB</b><small>Contract events → generated patch</small></span></button>
+            <button class="mission-case" data-case="biomarker_discordance"><i>05</i><span><b>Multi-omic Biomarker Discordance · LIVE DATAHUB</b><small>Catalog evidence → quarantine gate</small></span></button>
+            <button class="mission-case" data-case="protein_conformation"><i>06</i><span><b>Protein Conformation Evidence Rift · LIVE DATAHUB</b><small>Structure states → provenance gate</small></span></button>
+            <button class="mission-case" data-case="microenvironment_escape"><i>07</i><span><b>Tumour Microenvironment Escape · LIVE DATAHUB</b><small>Spatial states → review gate</small></span></button>
+          </div>
+          <div class="rl-strip">
+            <div><small>RL POLICY</small><b>Q-LEARNING</b></div><div><small>STATE RISK</small><b id="rlRisk">—</b></div><div><small>ACTION</small><b id="rlAction">AWAITING</b></div><div><small>REWARD</small><b id="rlReward">—</b></div><div><small>DATA TRUST</small><b id="rlTrust">—</b></div>
+          </div>
+          <div id="missionTimeline" class="mission-timeline"><span class="empty">Mission events will appear here as GCP + DataHub work is replayed.</span></div>
+        </article>
+
+        <div class="mission-workspace">
+          <article class="agent-theatre panel compact-panel">
+            <div class="section-bar"><span>◉ &nbsp; LIVE CONTEXT GRAPH</span><b id="followState">◎ Auto-following</b></div>
+            <div class="agent-map" id="agentMap">
+              <div class="map-ring r1"></div><div class="map-ring r2"></div><div class="map-cross x"></div><div class="map-cross y"></div>
+              <button class="agent-node node-1 active" data-agent="0"><i>1</i><span><b>Context Scout</b><small>MCP · search</small></span><em></em></button>
+              <button class="agent-node node-2" data-agent="1"><i>2</i><span><b>Lineage Sentinel</b><small>Skill · datahub-lineage</small></span><em></em></button>
+              <button class="agent-node node-3" data-agent="2"><i>3</i><span><b>ML Guardian</b><small>Agent Context Kit</small></span><em></em></button>
+              <button class="agent-node node-4" data-agent="3"><i>4</i><span><b>Bioinformatics Agent</b><small>MCP · schema + context</small></span><em></em></button>
+              <button class="agent-node node-5" data-agent="4"><i>5</i><span><b>Repair Engineer</b><small>Skills · quality + lineage</small></span><em></em></button>
+              <button class="agent-node node-6" data-agent="5"><i>6</i><span><b>Knowledge Steward</b><small>MCP · update_description</small></span><em></em></button>
+              <div id="datahubCore" class="datahub-core"><span>▱</span><strong>DataHub</strong><small><b id="corePercent">18%</b> context</small></div>
+            </div>
+            <div class="theatre-status"><span id="missionStatus">Ready · six agents awaiting incident</span><b id="missionClock">00:00</b></div>
+          </article>
+
+          <article class="inspector panel compact-panel">
+            <div class="section-bar"><span id="inspectorNumber">AGENT INSPECTOR · 01</span><b>◎ READ</b></div>
+            <div class="inspector-body">
+              <h2 id="inspectorName">Context Scout</h2><p id="inspectorPurpose">Replaces guessed table names with stable DataHub URNs.</p>
+              <div class="evidence-block"><small>DATAHUB CAPABILITY</small><strong id="inspectorTool">MCP · search</strong><code id="inspectorQuery">search(query="domain:oncology AND LUAD progression")</code></div>
+              <div class="evidence-block"><small>CONTEXT RETURNED</small><p id="inspectorEvidence">27 governed assets · 4 owners · 3 platforms</p><code id="inspectorUrn">urn:li:dataset:(gdc,TCGA_LUAD_progression,PROD)</code></div>
+              <div id="agentPager" class="agent-pager"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="mission-results">
+          <article class="panel answer-panel"><div class="section-bar"><span>GROUNDED FINDING</span><b id="qualityScore">—/5</b></div><p id="answer">Launch the investigation to produce a DataHub-grounded reliability finding.</p><code id="assetUrn">Awaiting DataHub search…</code></article>
+          <article id="writeback" class="panel writeback-panel"><div class="section-bar"><span>GOVERNED WRITEBACK</span><b id="writebackGate">LOCKED</b></div><p id="proposalText">The Governance Steward cannot mutate DataHub or recover a blocked mission without human approval.</p><div class="approval-row"><input id="approvalSecret" type="password" placeholder="Operator approval secret" autocomplete="off"><button id="approveMission" disabled>Approve mission</button><button id="approveWriteback">Approve metadata</button></div><small id="writebackStatus">Single-use approval · verified replay never writes</small></article>
+        </div>
+      </section>
+
+      <section id="view-twin" class="app-view">
+        <article class="view-intro"><span class="eyebrow">CANCER TWIN · SYNTHETIC RESEARCH SPACE</span><h1>See progression. <em>Interrogate provenance.</em></h1><p>The 3D scene reacts to DataHub agent evidence; it is one inspection surface inside the governed system.</p></article>
+        <article class="twin-stage panel">
+          <canvas id="twin3d" aria-label="Interactive synthetic 3D cancer progression twin"></canvas>
+          <div class="specimen-tools" aria-label="3D specimen tools">
+            <button data-twin-tool="rotate"><i>↶</i><span>Rotate</span></button><button data-twin-tool="zoom"><i>⌕</i><span>Zoom</span></button><button data-twin-tool="isolate"><i>◌</i><span>Isolate</span></button><button data-twin-tool="cross-section"><i>⌗</i><span>Cross-section</span></button><button data-twin-tool="layers"><i>◇</i><span>Layers</span></button><button data-twin-tool="compare"><i>⬡</i><span>Compare</span></button><button data-twin-tool="reset"><i>↶</i><span>Reset</span></button>
+          </div>
+          <div class="twin-hud top-left specimen-caption"><span class="eyebrow">3D SPECIMEN · CLICK A DOT TO EXPLORE</span><h2 id="specimenName">Pulmones</h2><div class="case-line"><span id="twinCohort">LUAD</span><i></i><span id="caseId">SYN-NSCLC-A17</span><i></i><span id="organLabel">LUNG</span></div></div>
+          <div class="twin-hud top-right"><span id="twinRendererStatus" class="renderer-status">○ LOCAL ENGINE</span></div>
+          <div id="lesionCard" class="lesion-card specimen-note"><span class="eyebrow">✣ INFERRED STATE</span><strong>Stage III</strong><p>Drag to rotate<br>Scroll to zoom<br>Click a dot to learn more</p></div>
+          <button id="autoRotate" class="auto-rotate active"><span>↶ &nbsp; Auto rotate</span><i></i></button>
+          <button id="playProgression" class="progression-play">▷ Play progression</button>
+          <div class="timeline-wrap"><input id="stageSlider" type="range" min="0" max="4" step="1" value="3"><div class="timeline-labels"><span>00<br><small>Baseline</small></span><span>01<br><small>Stage I</small></span><span>02<br><small>Stage II</small></span><span class="active">03<br><small>Stage III</small></span><span>04<br><small>Stage IV</small></span></div><div class="stage-meta"><b id="stageLabel">03 · STAGE III</b><span id="stageSignature">Synthetic regional progression state</span></div></div>
+        </article>
+        <div class="metric-strip"><div><span>TISSUE CELLS</span><b>14,382</b></div><div><span>ACTIVE SIGNALS</span><b id="activeSignals">1</b></div><div><span>CONTEXT LINKS</span><b>34</b></div><div><span>MODEL RISK</span><b id="modelRiskMetric" class="warning">HIGH</b></div></div>
+      </section>
+
+      <section id="view-scrna" class="app-view">
+        <article class="view-intro"><span class="eyebrow">SINGLE-CELL CONTEXT</span><h1>Cell states with <em>governed meaning.</em></h1><p>Every cluster, gene and cohort summary points back to cataloged schema and lineage evidence.</p></article>
+        <div class="scrna-layout">
+          <article class="panel umap-panel"><div class="section-bar"><span>INTERACTIVE UMAP · 14,382 CELLS</span><b>◎ brush + hover</b></div><canvas id="umapCanvas"></canvas><div id="umapTooltip" class="umap-tooltip hidden"></div></article>
+          <article class="panel gene-panel"><div class="section-bar"><span>GENE PROGRAM</span><b id="selectedGene">MKI67</b></div><div class="gene-buttons"><button class="gene active">MKI67</button><button class="gene">EPCAM</button><button class="gene">KRAS</button><button class="gene">TP53</button><button class="gene">STK11</button></div><div id="geneBars" class="gene-bars"></div><div class="schema-evidence"><small>DATAHUB CATALOG SCHEMA</small><code>gene_expression_summary.gene STRING</code><code>mean_expression FLOAT64</code><code>cluster_id STRING</code><code>patient_key STRING</code><b>✓ live contract fields aligned</b></div></article>
+        </div>
+        <div class="cluster-cards" id="clusterCards"></div>
+      </section>
+
+      <section id="view-graph" class="app-view">
+        <article class="view-intro"><span class="eyebrow">DATAHUB CAUSAL OBSERVATORY · LIVE EVIDENCE / SIMULATED CONSEQUENCE</span><h1>Watch metadata become a <em>safety force field.</em></h1><p>Synchronize the live graph, inject a research incident, observe its verified blast radius, then preview the governed counterfactual recovery without writing data.</p></article>
+        <div class="observatory-layout">
+          <article class="panel observatory-stage">
+            <div class="section-bar"><span>SPATIAL ML LINEAGE ORGANISM</span><b id="observatoryRenderer">○ starting causal engine</b></div>
+            <canvas id="observatory3d" aria-label="Interactive three-dimensional DataHub lineage graph with incident and repair propagation"></canvas>
+            <div class="observatory-node-hud"><small>FOCUSED ASSET</small><strong id="observatoryNode">progression_features</strong><span id="observatoryNodeKind">cataloged feature table</span><code id="observatoryUrn">Awaiting live graph synchronization…</code></div>
+            <div class="truth-boundary"><span><i class="live"></i>LIVE DATAHUB EVIDENCE</span><span><i class="sim"></i>SIMULATED BIOLOGY</span><span><i class="extension"></i>SEVEN CATALOGED DATA PRODUCTS</span><span><i class="gate"></i>HUMAN POLICY MEMBRANE</span></div>
+          </article>
+          <article class="panel observatory-console">
+            <div class="section-bar"><span>CAUSAL CONTROL DECK</span><b id="observatoryMode">UNSYNCED</b></div>
+            <button id="syncObservatory" class="launch observatory-sync">◎ Synchronize live DataHub graph</button>
+            <div class="observatory-proof"><small>GRAPH PROVENANCE</small><strong id="observatoryProof">No live evidence attached</strong><p id="observatoryCaptured">The 3D topology starts locally; synchronization attaches fresh MCP evidence.</p></div>
+            <div id="observatoryScenarios" class="observatory-scenarios">
+              <button class="active" data-observatory-case="feature_quality"><i>01</i><span>Biomarker completeness</span></button>
+              <button data-observatory-case="cancer_progression"><i>02</i><span>Tumour-state surge</span></button>
+              <button data-observatory-case="model_drift"><i>03</i><span>Cancer cohort drift</span></button>
+              <button data-observatory-case="schema_mutation"><i>04</i><span>Genomic schema mutation</span></button>
+              <button data-observatory-case="biomarker_discordance"><i>05</i><span>Multi-omic discordance</span></button>
+              <button data-observatory-case="protein_conformation"><i>06</i><span>Protein evidence rift</span></button>
+              <button data-observatory-case="microenvironment_escape"><i>07</i><span>Microenvironment escape</span></button>
+            </div>
+            <div class="causal-action"><small>SELECTED COUNTERFACTUAL</small><strong id="causalAction">BLOCK MODEL</strong><p id="causalRepair">Repair preview: COALESCE feature patch</p></div>
+            <div class="observatory-actions"><button id="injectIncident">⚡ Inject incident</button><button id="previewRepair">✦ Preview recovery</button><button id="rewindObservatory">↶ Rewind</button></div>
+            <div id="causalLedger" class="causal-ledger"><p>Select a scenario, synchronize DataHub and inject the incident.</p></div>
+            <div class="observatory-boundary"><span><b id="observatoryReads">0/6</b><small>LIVE MCP READS</small></span><span><b id="observatoryAffected">0</b><small>AFFECTED NODES</small></span><span><b>0</b><small>WRITES</small></span></div>
+          </article>
+        </div>
+        <article class="panel lineage-canvas">
+          <div class="section-bar"><span>END-TO-END ML LINEAGE · 3 HOPS</span><b>◎ live MCP get_lineage</b></div>
+          <div class="lineage-flow">
+            <button class="lineage-node"><small>GCS · RAW</small><b>cohort.h5ad</b><span>14,382 cells · 24.8 GB</span></button><i>→</i>
+            <button class="lineage-node"><small>BIGQUERY · TABLE</small><b>normalized_expression</b><span>freshness ✓ · owner ✓</span></button><i>→</i>
+            <button id="graphFeatureNode" class="lineage-node warn"><small>FEATURE VIEW</small><b>progression_features</b><span id="graphFeatureStatus">completeness incident ⚠</span></button><i>→</i>
+            <button class="lineage-node"><small>VERTEX AI · MODEL</small><b id="graphModel">luad_progression_v3</b><span>production endpoint</span></button><i>→</i>
+            <button class="lineage-node"><small>CLOUD RUN · APP</small><b>OncoTwin 3D</b><span>judge experience</span></button>
+          </div>
+          <div class="graph-detail-grid"><div><small>BLAST RADIUS</small><b>1 model · 2 APIs · 1 dashboard</b><p>A failed completeness contract propagates into the deployed progression model and two downstream consumers.</p></div><div><small>OWNERSHIP CHAIN</small><b id="graphOwner">Thoracic ML</b><p>Dataset steward → feature owner → model owner → application operator.</p></div><div><small>QUALITY ASSERTIONS</small><b>8 passing · 1 warning</b><p>Freshness, null rate, row count, schema compatibility and expression range.</p></div></div>
+        </article>
+      </section>
+
+      <section id="view-proof" class="app-view">
+        <article class="view-intro proof-intro"><span class="eyebrow">JUDGE PROOF MODE · SEVEN DATAHUB-NATIVE CONDITIONS</span><h1>Enter the <em>Cancer Context Universe.</em></h1><p>Each 3D world maps to its own cataloged BigQuery data product. Capture identity, schema, contract, ownership, query and bidirectional-lineage proof from the self-hosted DataHub MCP server.</p></article>
+        <div class="proof-layout">
+          <article class="panel proof-stage">
+            <div class="section-bar"><span>INTERACTIVE 3D MISSION MULTIVERSE</span><b id="proofRendererStatus">○ starting local engine</b></div>
+            <canvas id="proof3d" aria-label="Seven interactive cancer context worlds orbiting a central DataHub graph"></canvas>
+            <div class="proof-stage-hud"><small>SELECTED WORLD</small><strong id="proofCaseTitle">Biomarker Completeness Crisis</strong><span id="proofCaseChallenge">Production ML Agents</span></div>
+            <div class="proof-orbit-legend"><span><i></i>DataHub context beam</span><span><i></i>RL safety state</span><span><i></i>Governed recovery</span></div>
+            <div class="proof-stage-actions"><button id="launchProofCase">▷ Launch this mission</button><button id="replayProofCase" disabled>↻ Replay last proof</button></div>
+          </article>
+          <article class="panel proof-console">
+            <div class="section-bar"><span>LIVE DATAHUB EVIDENCE LEDGER</span><b id="proofMode">NOT CAPTURED</b></div>
+            <div class="proof-verdict"><small>VERIFIABLE CLAIM</small><strong id="proofVerdict">Run a live proof capture</strong><p id="proofTimestamp">No cached screenshots. Every proof is generated on demand.</p></div>
+            <button id="runDatahubProof" class="launch proof-button">◎ Capture live DataHub proof</button>
+            <code id="proofAssetUrn">Awaiting canonical DataHub URN…</code>
+            <div id="proofToolLedger" class="proof-tool-ledger"><p class="empty">MCP search, schema and bidirectional lineage calls will appear here with their measured latency.</p></div>
+            <div class="proof-boundary"><span><b id="proofToolCount">0/6</b><small>MCP READS</small></span><span><b id="proofIncidentCount">—</b><small>ACTIVE INCIDENTS</small></span><span><b>0</b><small>WRITES DURING PROOF</small></span></div>
+            <button id="downloadProof" class="outline-action proof-download" disabled>⇩ Export judge evidence JSON</button>
+          </article>
+        </div>
+        <div id="proofCaseGrid" class="proof-case-grid"></div>
+      </section>
+
+      <section id="view-fix" class="app-view">
+        <article class="view-intro"><span class="eyebrow">METADATA-AWARE CODE GENERATION</span><h1>Generate the fix from <em>real context.</em></h1><p>The Repair Engineer reads schema, lineage, owners and quality rules before producing a mergeable artifact.</p></article>
+        <div class="fix-layout">
+          <article class="panel code-panel"><div class="section-bar"><span>GENERATED ARTIFACT</span><div class="code-tabs"><button class="active" data-code="dbt">dbt repair</button><button data-code="airflow">Airflow guard</button><button data-code="python">ingestion patch</button></div></div><pre id="generatedCode"><code></code></pre></article>
+          <article class="panel fix-review"><div class="section-bar"><span>MERGE READINESS</span><b>92 / 100</b></div><div class="checklist"><p><i>✓</i><span><b>Schema grounded</b><small>Fields verified through DataHub MCP</small></span></p><p><i>✓</i><span><b>Lineage-aware</b><small>Protects downstream model and API</small></span></p><p><i>✓</i><span><b>Owner assigned</b><small id="fixOwner">Thoracic ML</small></span></p><p><i>✓</i><span><b>Quality threshold</b><small>Matches cataloged completeness rule</small></span></p><p class="pending"><i>!</i><span><b>Human approval</b><small>Required before PR/writeback</small></span></p></div><button id="downloadFix" class="launch small">⇩ Download generated artifact</button><button id="reviewWriteback" class="outline-action">Review DataHub writeback</button></article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="context-rail rail-panel">
+      <div class="rail-title"><span>CONTEXT INTELLIGENCE</span><b>⌘</b></div>
+      <section class="intelligence trust-block"><small>DATA TRUST</small><strong><b id="trustValue">61</b><em>/100</em></strong><div class="trust-track"><i id="trustBar"></i></div><p>⚠ <span id="trustIncident">RNA-seq freshness breach</span></p></section>
+      <section class="intelligence"><h3>▱ &nbsp; DATAHUB IDENTITY</h3><dl><dt>Model</dt><dd id="rightModel">luad_progression_v3</dd><dt>Owner</dt><dd id="rightOwner">Thoracic ML</dd><dt>Cohort</dt><dd id="rightSource">TCGA-LUAD + public scRNA atlas</dd></dl></section>
+      <section class="intelligence"><h3>⌬ &nbsp; DRIVER EVIDENCE</h3><div id="driverBars" class="mini-bars"></div></section>
+      <section class="intelligence"><h3>✣ &nbsp; scRNA COMPOSITION</h3><div id="compositionList" class="composition"></div></section>
+      <section class="intelligence"><h3>⚗ &nbsp; MOLECULE HYPOTHESES</h3><div id="moleculeList" class="molecules"></div><small class="rdkit-note">RDKit similarity · research hypotheses only</small></section>
+      <section class="intelligence utility"><h3>DATAHUB UTILITIES</h3><span>MCP Server</span><span>Agent Context Kit</span><span>Skills</span><span>Analytics Agent</span></section>
+    </aside>
+  </div>
+
+  <footer><span>DataHub MCP · Agent Context Kit · DataHub Skills · Analytics Agent · BigQuery · Vertex AI · RDKit</span><a id="analyticsLink" href="http://localhost:8100" target="_blank" rel="noreferrer">Open Analytics Agent ↗</a></footer>
+
+  <script type="importmap">{"imports":{"three":"/assets/vendor/three.module.min.js","three/addons/":"/assets/vendor/addons/"}}</script>
+  <script type="module" src="/assets/app.js?v=10.1.0"></script>
+</body>
+</html>
