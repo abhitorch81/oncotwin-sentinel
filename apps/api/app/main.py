@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 import json
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
@@ -8,21 +9,35 @@ from fastapi.responses import StreamingResponse
 from .config import get_settings
 from .adk_fleet import adk_runtime_status
 from .adk_runtime import AdkExecutionService, AdkTraceRepository
-from .memory import InMemoryMissionRepository
+from .memory import create_mission_repository
 from .mission_service import MissionService
 from .models import ApprovalRequest, CommandRequest, StartMissionRequest
 from .nano_simulator import DEFAULT_CANDIDATES
 from .security import ApprovalDenied, validate_approval
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version=settings.app_version,
-              description="Synthetic research-only agentic oncology digital twin.")
-app.add_middleware(CORSMiddleware, allow_origins=settings.origins,
-                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-repository = InMemoryMissionRepository()
+repository = create_mission_repository(
+    firestore_enabled=settings.firestore_enabled,
+    project_id=settings.google_cloud_project,
+    firestore_database=settings.firestore_database,
+    demo_mode=settings.demo_mode,
+)
 service = MissionService(repository)
 adk_trace_repository = AdkTraceRepository()
 adk_execution = AdkExecutionService(adk_trace_repository)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    yield
+    repository.close()
+
+
+app = FastAPI(title=settings.app_name, version=settings.app_version,
+              description="Synthetic research-only agentic oncology digital twin.",
+              lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=settings.origins,
+                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/api/health")
@@ -30,15 +45,17 @@ def health() -> dict:
     return {"ok": True, "app_name": settings.app_name, "ui_version": settings.app_version,
             "edition": "google-native-milestone-1", "mode": "demo" if settings.demo_mode else "live",
             "medical_use": "synthetic_research_only", "human_approval_required": True,
-            "adk_enabled": settings.adk_enabled}
+            "adk_enabled": settings.adk_enabled,
+            "memory_backend_configured": repository.configured_backend}
 
 
 @app.get("/api/architecture/proof")
 def architecture_proof() -> dict:
     return {
         "implemented": ["four-agent visible trace", "deterministic nano simulator", "SSE events",
-                        "fail-closed approval", "receipt hashing", "3D action contract", "demo fallback"],
-        "next_connectors": ["Google ADK orchestration", "Gemini Live gateway", "CockroachDB repository"],
+                        "fail-closed approval", "receipt hashing", "3D action contract",
+                        "Firestore mission memory", "demo fallback"],
+        "next_connectors": ["Gemini Live gateway", "synthetic image evidence"],
         "deployment_target": ["Cloud Run", "Secret Manager", "Cloud Logging"],
         "cloud_scope": "google_cloud_only",
     }
@@ -64,7 +81,7 @@ def candidates() -> list[dict]:
 
 @app.post("/api/nano/missions/start")
 async def start_mission(request: StartMissionRequest, background_tasks: BackgroundTasks) -> dict:
-    mission = service.start(request.prompt)
+    mission = await asyncio.to_thread(service.start, request.prompt)
     await adk_execution.prepare(mission.id, settings.adk_model, settings.adk_enabled)
     if settings.adk_enabled:
         background_tasks.add_task(adk_execution.run, mission.id, request.prompt, settings.adk_model)
@@ -73,7 +90,7 @@ async def start_mission(request: StartMissionRequest, background_tasks: Backgrou
 
 @app.get("/api/nano/missions/{mission_id}/adk-trace")
 async def adk_trace(mission_id: str) -> dict:
-    if not repository.get(mission_id):
+    if not await asyncio.to_thread(repository.get, mission_id):
         raise HTTPException(404, "Mission not found")
     trace = await adk_trace_repository.get(mission_id)
     if not trace:
@@ -84,7 +101,7 @@ async def adk_trace(mission_id: str) -> dict:
 @app.get("/api/nano/missions/{mission_id}/adk-events")
 async def adk_events(mission_id: str, request: Request) -> StreamingResponse:
     """Stream privacy-safe ADK node/tool metadata to the 3D mission theatre."""
-    if not repository.get(mission_id):
+    if not await asyncio.to_thread(repository.get, mission_id):
         raise HTTPException(404, "Mission not found")
 
     async def stream():
@@ -164,5 +181,16 @@ def approve(mission_id: str, request: ApprovalRequest) -> dict:
         raise HTTPException(403, str(exc)) from exc
     mission.state = "approved"
     mission.approved_by = request.actor
-    repository.save(mission)
+    repository.record_approval(mission, request.actor, "approved", request.channel)
     return {"approved": True, "mission_id": mission.id, "approved_by": request.actor}
+
+
+@app.get("/api/memory/proof")
+def memory_proof() -> dict:
+    """Judge-facing persistence proof with no connection details or sensitive payloads."""
+    return {
+        **repository.proof(),
+        "stores": ["missions", "mission_receipts", "approval_events", "resume_cursor"],
+        "credentials_exposed": False,
+        "standalone_memory_ui": False,
+    }

@@ -15,17 +15,21 @@ Say or type **“Investigate the resistant red clone and find a safer nanopartic
 - Tumour delivery versus liver/kidney accumulation comparison
 - Candidate rejection and preferred-candidate selection
 - SHA-256 evidence receipt and prior-receipt retrieval boundary
+- Google Cloud Firestore mission persistence with restart proof and approval audit
 - Server-Sent Event trace contract with 3D scene actions
 - Fail-closed approval: voice may request, but never grant, approval
 - React + TypeScript + React Three Fiber “Living Evidence Theatre”
 - Browser speech-to-text fallback, text command, and clickable 3D clone
 - FastAPI health, capabilities, architecture proof, mission and approval endpoints
-- Cloud Run/Docker foundation and CockroachDB schema
+- Cloud Run/Docker foundation and locked-down Firestore rules
 - Offline demo fallback for a judge-safe presentation
 
 ## Truthful milestone boundary
 
-Google ADK orchestration, Gemini Live native audio, production CockroachDB persistence, synthetic image comparison, and Cloud Run observability are the next adapters. The UI labels these as ready/planned gateways and this code does not claim those external integrations are already complete.
+Google ADK orchestration and production Firestore persistence are implemented behind
+explicit feature/configuration gates. Gemini Live native audio, synthetic image comparison,
+failed-run continuation from the stored resume cursor, and Cloud Run observability remain
+the next adapters; the application does not claim those are complete.
 
 ## Architecture
 
@@ -37,7 +41,7 @@ flowchart TD
   FLEET --> SAFE["Safety Steward<br/>fail closed"]
   SIM --> RECEIPT["Evidence receipt<br/>SHA-256 + trace"]
   SAFE --> HUMAN["Human approval<br/>visual control only"]
-  RECEIPT --> MEMORY["CockroachDB memory<br/>resume + audit"]
+  RECEIPT --> MEMORY["Firestore memory<br/>resume + audit"]
   API -. "next adapter" .-> GEMINI["Gemini Live / Vertex AI"]
 ```
 
@@ -80,10 +84,8 @@ python3 -m json.tool packages/contracts/mission.schema.json >/dev/null
 
 ## Next build sequence
 
-1. Replace the local fleet runner with Google ADK while preserving the event contract.
-2. Add interruptible Gemini Live voice as a separate low-latency gateway.
-3. Implement the Cockroach repository and restart/resume tests.
-4. Add governed synthetic image comparison and visible provenance.
-5. Deploy to Cloud Run with Secret Manager and structured trace logging.
-6. Add the Mission Constellation: Biofilm, Hypoxic Core, GBM/BBB, Immune, Antigen Escape, and Longitudinal Adaptation.
-
+1. Add interruptible Gemini Live voice as a separate low-latency gateway.
+2. Connect failed ADK runs to the persisted resume cursor.
+3. Add governed synthetic image comparison and visible provenance.
+4. Deploy to Cloud Run with Secret Manager and structured trace logging.
+5. Add the Mission Constellation: Biofilm, Hypoxic Core, GBM/BBB, Immune, Antigen Escape, and Longitudinal Adaptation.

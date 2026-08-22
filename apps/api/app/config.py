@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     app_version: str = "13.0.0-m1"
     app_env: str = "development"
     demo_mode: bool = True
-    database_url: str = ""
+    firestore_enabled: bool = False
+    firestore_database: str = "(default)"
     google_cloud_project: str = ""
     google_cloud_location: str = "global"
     gemini_model: str = "gemini-2.5-flash"

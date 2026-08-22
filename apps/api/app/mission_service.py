@@ -2,13 +2,13 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 import uuid
 
-from .memory import InMemoryMissionRepository
+from .memory import MissionRepository
 from .models import AgentEvent, Candidate, Mission, MissionReceipt, SimulationResult
 from .nano_simulator import DEFAULT_CANDIDATES, receipt_digest, run_comparison
 
 
 class MissionService:
-    def __init__(self, repository: InMemoryMissionRepository) -> None:
+    def __init__(self, repository: MissionRepository) -> None:
         self.repository = repository
 
     def start(self, prompt: str) -> Mission:
@@ -51,4 +51,3 @@ class MissionService:
         return self.repository.save(Mission(id=mission_id, prompt=prompt,
                                            state="awaiting_human_approval", created_at=now,
                                            events=events, receipt=receipt))
-
