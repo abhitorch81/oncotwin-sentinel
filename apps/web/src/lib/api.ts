@@ -1,4 +1,4 @@
-import type { AdkTraceEvent, AdkTraceStatus, Mission } from '../types'
+import type { AdkTraceEvent, AdkTraceStatus, ApprovalResponse, MemoryProof, Mission } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -10,12 +10,30 @@ export async function startMission(prompt: string): Promise<Mission> {
   return response.json()
 }
 
-export async function approveMission(missionId: string): Promise<void> {
+export async function getMission(missionId: string): Promise<Mission> {
+  const response = await fetch(`${API}/api/nano/missions/${missionId}`)
+  if (!response.ok) throw new Error('Stored mission unavailable')
+  return response.json()
+}
+
+export async function getMemoryProof(): Promise<MemoryProof> {
+  const response = await fetch(`${API}/api/memory/proof`)
+  if (!response.ok) throw new Error('Memory proof unavailable')
+  return response.json()
+}
+
+export async function requestMissionApproval(missionId: string): Promise<void> {
+  const response = await fetch(`${API}/api/nano/missions/${missionId}/request-approval`, { method: 'POST' })
+  if (!response.ok) throw new Error('Approval request was denied')
+}
+
+export async function approveMission(missionId: string): Promise<ApprovalResponse> {
   const response = await fetch(`${API}/api/nano/missions/${missionId}/approve`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ actor: 'demo-researcher', channel: 'ui', confirmation: 'APPROVE SYNTHETIC RESEARCH MISSION' }),
   })
   if (!response.ok) throw new Error('Approval was denied')
+  return response.json()
 }
 
 export function streamAdkEvents(

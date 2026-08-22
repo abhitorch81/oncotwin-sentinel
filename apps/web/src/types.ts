@@ -50,5 +50,28 @@ export interface Mission {
     preferred_candidate_id: string
     rejected_candidate_ids: string[]
     receipt_sha256: string
+    prior_memory_used?: string[]
+    policy_version?: string
+    evidence_ids?: string[]
   }
+  approval_requested?: boolean
+  approved_by?: string | null
+}
+
+export interface MemoryProof {
+  configured_backend: string
+  active_backend: string
+  persistent: boolean
+  healthy: boolean
+  degraded: boolean
+  mission_count: number
+  approval_count: number
+  latest_receipt_sha256_prefix: string | null
+  resume_cursor_supported: boolean
+}
+
+export interface ApprovalResponse {
+  approved: boolean
+  mission_id: string
+  approved_by: string
 }

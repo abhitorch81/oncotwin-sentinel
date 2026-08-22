@@ -9,7 +9,7 @@ const meta: Record<AgentName, { icon: typeof Binoculars; color: string; code: st
   'Safety Steward': { icon: ShieldCheck, color: '#ffb35d', code: '04' },
 }
 
-export function AgentFlightRecorder({ events, visible, approved, traceStatus }: { events: AgentEvent[]; visible: number; approved: boolean; traceStatus: AdkTraceStatus }) {
+export function AgentFlightRecorder({ events, visible, approved, traceStatus, receiptHash }: { events: AgentEvent[]; visible: number; approved: boolean; traceStatus: AdkTraceStatus; receiptHash?: string }) {
   const latest = new Map<AgentName, AgentEvent>()
   events.slice(0, visible).forEach(event => latest.set(event.agent, event))
   return <aside className="flight-recorder glass">
@@ -35,6 +35,6 @@ export function AgentFlightRecorder({ events, visible, approved, traceStatus }: 
         </motion.article>
       })}
     </div>
-    <div className="trace-proof"><span>TRACE RECEIPT</span><code>93f7c9bb4cc8…</code></div>
+    <div className="trace-proof"><span>TRACE RECEIPT</span><code>{receiptHash ? `${receiptHash.slice(0, 12)}…` : 'pending'}</code></div>
   </aside>
 }

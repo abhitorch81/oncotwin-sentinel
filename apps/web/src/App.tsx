@@ -4,21 +4,29 @@ import { AgentFlightRecorder } from './components/AgentFlightRecorder'
 import { ApprovalMembrane } from './components/ApprovalMembrane'
 import { CandidateComparison } from './components/CandidateComparison'
 import { CommandCapsule } from './components/CommandCapsule'
+import { EvidenceReceipt } from './components/EvidenceReceipt'
 import { TwinScene } from './components/TwinScene'
-import { approveMission, startMission, streamAdkEvents } from './lib/api'
+import { approveMission, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
-import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, Mission } from './types'
+import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, MemoryProof, Mission } from './types'
 import './styles.css'
+import './styles/memory-evidence.css'
+
+const ACTIVE_MISSION_KEY = 'oncotwin.activeMissionId'
 
 export default function App() {
   const [mission, setMission] = useState<Mission | null>(null)
   const [visible, setVisible] = useState(0)
   const [running, setRunning] = useState(false)
-  const [approved, setApproved] = useState(false)
   const [fallback, setFallback] = useState(false)
+  const [memoryProof, setMemoryProof] = useState<MemoryProof | null>(null)
+  const [restored, setRestored] = useState(false)
+  const [approvalBusy, setApprovalBusy] = useState(false)
+  const [approvalError, setApprovalError] = useState<string | null>(null)
   const [adkStatus, setAdkStatus] = useState<AdkTraceStatus>('disabled')
   const [adkEvents, setAdkEvents] = useState<AdkTraceEvent[]>([])
   const closeStream = useRef<(() => void) | null>(null)
+  const approved = mission?.state === 'approved'
 
   const useDeterministicTrace = fallback || adkStatus === 'fallback' || adkStatus === 'disabled'
   const liveAgentEvents = useMemo<AgentEvent[]>(() => adkEvents
@@ -51,12 +59,24 @@ export default function App() {
 
   useEffect(() => () => closeStream.current?.(), [])
 
+  useEffect(() => {
+    let active = true
+    getMemoryProof().then(proof => active && setMemoryProof(proof)).catch(() => undefined)
+    const missionId = window.localStorage.getItem(ACTIVE_MISSION_KEY)
+    if (missionId) getMission(missionId).then(saved => {
+      if (!active) return
+      setMission(saved); setVisible(saved.events.length); setAdkStatus('disabled'); setFallback(false); setRestored(true)
+    }).catch(() => window.localStorage.removeItem(ACTIVE_MISSION_KEY))
+    return () => { active = false }
+  }, [])
+
   const run = async (prompt: string) => {
     closeStream.current?.()
-    setRunning(true); setApproved(false); setVisible(0); setAdkEvents([]); setAdkStatus('queued')
+    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null)
     try {
       const created = await startMission(prompt)
-      setMission(created); setFallback(false)
+      setMission(created); setFallback(false); window.localStorage.setItem(ACTIVE_MISSION_KEY, created.id)
+      getMemoryProof().then(setMemoryProof).catch(() => undefined)
       closeStream.current = streamAdkEvents(
         created.id,
         event => setAdkEvents(current => current.some(item => item.sequence === event.sequence) ? current : [...current, event]),
@@ -64,19 +84,28 @@ export default function App() {
         () => setAdkStatus('fallback'),
       )
     }
-    catch { setMission({ ...demoMission, prompt }); setFallback(true); setAdkStatus('fallback') }
+    catch { setMission({ ...demoMission, prompt }); setFallback(true); setAdkStatus('fallback'); window.localStorage.removeItem(ACTIVE_MISSION_KEY) }
     finally { setRunning(false) }
   }
   const approve = async () => {
     if (!mission) return
-    if (!fallback) await approveMission(mission.id)
-    setApproved(true)
+    if (fallback) { setApprovalError('Demo fallback cannot claim an auditable approval. Restore the API connection first.'); return }
+    setApprovalBusy(true); setApprovalError(null)
+    try {
+      await requestMissionApproval(mission.id)
+      await approveMission(mission.id)
+      const saved = await getMission(mission.id)
+      setMission(saved)
+      setMemoryProof(await getMemoryProof())
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Approval could not be recorded')
+    } finally { setApprovalBusy(false) }
   }
 
   return <main>
     <header className="topbar">
       <div className="brand"><div className="brand-mark"><Activity size={19} /></div><div><strong>ONCOTWIN <i>SENTINEL</i></strong><small>LIVING EVIDENCE · SYNTHETIC RESEARCH ONLY</small></div></div>
-      <nav><span><Cloud size={13} /> CLOUD RUN TARGET</span><span><Database size={13} /> MEMORY CONTRACT</span><span><AudioLines size={13} /> LIVE VOICE NEXT</span></nav>
+      <nav><span><Cloud size={13} /> CLOUD RUN TARGET</span><span className={`memory-state ${memoryProof?.healthy ? '' : 'degraded'}`}><Database size={13} /> {memoryProof?.persistent ? 'FIRESTORE LIVE' : 'MEMORY CHECK'}</span><span><AudioLines size={13} /> LIVE VOICE NEXT</span></nav>
       <button aria-label="Help"><CircleHelp size={18} /></button>
     </header>
 
@@ -91,12 +120,13 @@ export default function App() {
         {mission && presentationComplete && <CandidateComparison results={mission.receipt.results} />}
       </div>
       <div className="right-rail">
-        <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} />
-        {mission && presentationComplete && <ApprovalMembrane approved={approved} onApprove={approve} />}
+        <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} receiptHash={mission?.receipt?.receipt_sha256} />
+        {mission && presentationComplete && <EvidenceReceipt mission={mission} proof={memoryProof} restored={restored} fallback={fallback} />}
+        {mission && presentationComplete && <ApprovalMembrane approved={approved} onApprove={approve} busy={approvalBusy} auditAvailable={!fallback && Boolean(memoryProof?.persistent && memoryProof?.healthy)} error={approvalError} />}
       </div>
     </section>
 
     <CommandCapsule running={running} onRun={run} />
-    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>DETERMINISTIC SIM v1</span><span>POLICY nano-safety-v1</span><span>60 FPS TARGET</span></footer>
+    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>60 FPS TARGET</span></footer>
   </main>
 }
