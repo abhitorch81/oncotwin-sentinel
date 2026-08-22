@@ -1,0 +1,25 @@
+# Keep Docker contexts deterministic and free of local credentials/build output.
+.git
+.github
+.venv*
+**/.venv*
+**/node_modules
+**/dist
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.DS_Store
+**/.env
+**/.env.*
+!**/.env.example
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.dmg
+weekly_ops_*
+apply_slice5_memory_evidence_ui.py
+FIRESTORE_MIGRATION_DELETE.txt
+backend.before-*
+frontend.before-*
+.*-backup-*
