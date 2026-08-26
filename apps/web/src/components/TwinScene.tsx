@@ -1,7 +1,56 @@
 import { Float, Line, OrbitControls, Sparkles, Text } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import type { RefObject } from 'react'
 import * as THREE from 'three'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import type { ScenePatch } from '../types'
+
+const cameraShots: Record<ScenePatch['camera_target'] | 'overview', {
+  position: [number, number, number]
+  focus: [number, number, number]
+  fov: number
+}> = {
+  overview: { position: [0, 1.1, 7.2], focus: [0, 0, 0], fov: 44 },
+  clone_r7: { position: [1.35, .72, 4.45], focus: [.42, .18, 0], fov: 39 },
+  candidate_forge: { position: [-1.9, 1.65, 6.05], focus: [-.15, .15, 0], fov: 43 },
+  tumour_core: { position: [.35, .62, 5.05], focus: [0, -.05, 0], fov: 41 },
+  liver_sink: { position: [4.35, 2.25, 4.75], focus: [2.55, .9, -.7], fov: 42 },
+  approval_boundary: { position: [0, 2.65, 7.45], focus: [0, .15, 0], fov: 46 },
+}
+
+function CameraDirector({ target = 'overview', controls }: {
+  target?: ScenePatch['camera_target'] | 'overview'
+  controls: RefObject<OrbitControlsImpl | null>
+}) {
+  const focus = useRef(new THREE.Vector3(...cameraShots.overview.focus))
+  const moving = useRef(true)
+  const reducedMotion = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
+  const shot = cameraShots[target]
+  const targetPosition = useMemo(() => new THREE.Vector3(...shot.position), [shot])
+  const targetFocus = useMemo(() => new THREE.Vector3(...shot.focus), [shot])
+  useEffect(() => { moving.current = true }, [target])
+  useFrame(({ camera }, delta) => {
+    if (!moving.current) return
+    const alpha = reducedMotion ? 1 : 1 - Math.exp(-2.8 * Math.min(delta, .1))
+    const perspectiveCamera = camera as THREE.PerspectiveCamera
+    if (controls.current) controls.current.enabled = false
+    camera.position.lerp(targetPosition, alpha)
+    focus.current.lerp(targetFocus, alpha)
+    perspectiveCamera.fov = THREE.MathUtils.lerp(perspectiveCamera.fov, shot.fov, alpha)
+    perspectiveCamera.updateProjectionMatrix()
+    camera.lookAt(focus.current)
+    if (reducedMotion || (camera.position.distanceTo(targetPosition) < .025 && focus.current.distanceTo(targetFocus) < .025)) {
+      moving.current = false
+      if (controls.current) {
+        controls.current.target.copy(targetFocus)
+        controls.current.enabled = true
+        controls.current.update()
+      }
+    }
+  })
+  return null
+}
 
 function Tumour({ onSelect }: { onSelect: () => void }) {
   const group = useRef<THREE.Group>(null)
@@ -41,9 +90,11 @@ const actionRank: Record<string, number> = {
   reject_candidate: 4, show_approval_membrane: 5,
 }
 
-export function TwinScene({ onCloneSelect, sceneAction }: { onCloneSelect: () => void; sceneAction?: string }) {
+export function TwinScene({ onCloneSelect, sceneAction, scenePatch }: { onCloneSelect: () => void; sceneAction?: string; scenePatch?: ScenePatch }) {
   const rank = actionRank[sceneAction || ''] || 0
+  const controls = useRef<OrbitControlsImpl>(null)
   return <Canvas camera={{ position: [0, 1.1, 7.2], fov: 44 }} dpr={[1, 1.7]}>
+    <CameraDirector target={scenePatch?.camera_target || 'overview'} controls={controls} />
     <color attach="background" args={['#030509']} />
     <fog attach="fog" args={['#030509', 7, 15]} />
     <ambientLight intensity={.4} />
@@ -55,6 +106,6 @@ export function TwinScene({ onCloneSelect, sceneAction }: { onCloneSelect: () =>
     {rank >= 2 && <NanoPath color="#75ffbd" offset={-1.0} />}
     {rank >= 3 && <OrganGhost position={[3.1, 1.15, -1.2]} label="LIVER RISK" color="#ff985d" />}
     {rank >= 3 && <OrganGhost position={[3.35, -1.3, -.7]} label="KIDNEY RISK" color="#b85cff" />}
-    <OrbitControls enablePan={false} minDistance={5} maxDistance={10} autoRotate autoRotateSpeed={.18} />
+    <OrbitControls ref={controls} enablePan={false} minDistance={3.8} maxDistance={10} enableDamping dampingFactor={.08} />
   </Canvas>
 }

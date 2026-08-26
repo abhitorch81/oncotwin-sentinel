@@ -52,12 +52,15 @@ export default function App() {
   const presentationComplete = Boolean(mission) && (
     adkStatus === 'succeeded' || (useDeterministicTrace && visible >= (mission?.events.length || 0))
   )
-  const sceneAction = [...displayEvents].reverse().find(event => event.scene_action)?.scene_action
-  const activeArtifact = [...displayEvents].slice(0, displayVisible).reverse().find(event => event.artifact)?.artifact
+  const visibleSceneEvents = displayEvents.slice(0, displayVisible)
+  const activeSceneEvent = [...visibleSceneEvents].reverse().find(event => event.scene_patch || event.scene_action)
+  const sceneAction = activeSceneEvent?.scene_patch?.action || activeSceneEvent?.scene_action
+  const scenePatch = activeSceneEvent?.scene_patch || undefined
+  const activeArtifact = [...visibleSceneEvents].reverse().find(event => event.artifact)?.artifact
 
   useEffect(() => {
     if (!mission || !useDeterministicTrace || visible >= mission.events.length) return
-    const timer = window.setTimeout(() => setVisible(v => v + 1), visible === 0 ? 250 : 700)
+    const timer = window.setTimeout(() => setVisible(v => v + 1), visible === 0 ? 250 : 1100)
     return () => window.clearTimeout(timer)
   }, [mission, visible, useDeterministicTrace])
 
@@ -116,13 +119,16 @@ export default function App() {
     <div className="truth-boundary"><FlaskConical size={13} /> Synthetic research simulation — not medical advice, diagnosis, or treatment.</div>
     <section className="stage">
       <div className="viewport">
-        <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')} sceneAction={sceneAction} />
+        <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')} sceneAction={sceneAction} scenePatch={scenePatch} />
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
         <div className="scene-key"><span className="cyan">A · ACCEPTABLE</span><span className="red">B · REJECTED</span><span className="green">C · PREFERRED</span></div>
         {activeArtifact && <div className={`scene-artifact artifact-${activeArtifact.kind}`}>
           <small>ACTIVE WORK PRODUCT</small><strong>{activeArtifact.title}</strong>
           <span>{activeArtifact.detail}</span>
+        </div>}
+        {scenePatch && <div className={`scene-camera-cue cue-${scenePatch.emphasis}`}>
+          <i /><span>CAMERA LOCK</span><strong>{scenePatch.camera_target.replaceAll('_', ' ')}</strong>
         </div>}
         {!mission && <button className="investigate" onClick={() => run(demoMission.prompt)}><ScanSearch size={18} /> BEGIN NANO SAFETY MISSION</button>}
         {mission && presentationComplete && <CandidateComparison results={mission.receipt.results} />}
