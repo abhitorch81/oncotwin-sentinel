@@ -28,6 +28,7 @@ def retrieve_synthetic_clone_evidence(clone_id: str) -> dict[str, Any]:
         "clone_id": "R7",
         "phenotype": "synthetic_resistant_clone",
         "persistence_signal": 0.31,
+        "matrix_resistance": 0.72,
         "evidence_ids": ["SYN-CLONE-R7", "SYN-ASSAY-42"],
         "synthetic_research_only": True,
     }

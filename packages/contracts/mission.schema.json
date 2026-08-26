@@ -14,15 +14,50 @@
   "$defs": {
     "event": {
       "type": "object",
-      "required": ["sequence", "agent", "status", "summary"],
+      "required": ["sequence", "agent", "status", "summary", "artifact", "scene_patch"],
       "properties": {
         "sequence": { "type": "integer", "minimum": 1 },
         "agent": { "enum": ["Evidence Scout", "Nano Designer", "Twin Simulator", "Safety Steward"] },
         "status": { "enum": ["working", "complete", "blocked"] },
         "summary": { "type": "string" },
-        "scene_action": { "enum": ["focus_clone", "spawn_candidates", "run_particle_paths", "reject_candidate", "show_approval_membrane"] }
+        "scene_action": { "enum": ["focus_clone", "spawn_candidates", "run_particle_paths", "reject_candidate", "show_approval_membrane"] },
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "scene_patch": { "$ref": "#/$defs/scenePatch" }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "required": ["label", "value", "tone"],
+      "properties": {
+        "label": { "type": "string" },
+        "value": { "type": ["string", "number"] },
+        "unit": { "type": ["string", "null"] },
+        "tone": { "enum": ["neutral", "good", "warning", "critical"] }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["kind", "title", "detail", "metrics", "evidence_ids"],
+      "properties": {
+        "kind": { "enum": ["evidence_bundle", "candidate_blueprint", "distribution_comparison", "safety_decision", "approval_boundary"] },
+        "title": { "type": "string" },
+        "detail": { "type": "string" },
+        "metrics": { "type": "array", "items": { "$ref": "#/$defs/metric" } },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "evidence_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "scenePatch": {
+      "type": "object",
+      "required": ["action", "camera_target", "overlay", "candidate_ids", "emphasis"],
+      "properties": {
+        "action": { "enum": ["focus_clone", "spawn_candidates", "run_particle_paths", "reject_candidate", "show_approval_membrane"] },
+        "camera_target": { "enum": ["clone_r7", "candidate_forge", "tumour_core", "liver_sink", "approval_boundary"] },
+        "overlay": { "enum": ["clone_signal", "candidate_blueprints", "distribution_paths", "safety_quarantine", "approval_membrane"] },
+        "candidate_ids": { "type": "array", "items": { "enum": ["A", "B", "C"] } },
+        "simulation_hour": { "type": ["integer", "null"], "minimum": 0, "maximum": 24 },
+        "emphasis": { "enum": ["evidence", "design", "delivery", "risk", "authority"] }
       }
     }
   }
 }
-

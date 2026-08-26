@@ -32,7 +32,15 @@ class MissionServiceTests(unittest.TestCase):
         second = self.service.start("Follow-up investigation")
         self.assertIn(first.receipt.receipt_sha256[:12], second.receipt.prior_memory_used)
 
+    def test_each_agent_step_emits_inspectable_artifact_and_scene_patch(self):
+        mission = self.service.start("Investigate the resistant red clone")
+        self.assertTrue(all(event.artifact for event in mission.events))
+        self.assertTrue(all(event.scene_patch for event in mission.events))
+        self.assertEqual(mission.events[0].artifact.metrics[0].value, 31)
+        self.assertEqual(mission.events[2].scene_patch.simulation_hour, 24)
+        self.assertEqual(mission.events[3].artifact.kind, "safety_decision")
+        self.assertEqual(mission.events[-1].artifact.metrics[0].value, "BLOCKED")
+
 
 if __name__ == "__main__":
     unittest.main()
-

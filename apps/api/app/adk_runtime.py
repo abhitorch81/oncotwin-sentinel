@@ -2,14 +2,24 @@
 
 import asyncio
 from copy import deepcopy
+from dataclasses import asdict
 from typing import Any
 
+from .agent_artifacts import event_contract_for_node
 from .adk_fleet import VISIBLE_AGENTS, build_adk_fleet
-from .models import AdkMissionTrace, AdkTraceEvent
+from .models import AdkMissionTrace, AdkTraceEvent, Candidate, SimulationResult
+from .nano_simulator import run_comparison
 
 
 VISIBLE_BY_NODE = {item["name"]: item["visible_name"] for item in VISIBLE_AGENTS}
-SCENE_BY_NODE = {item["name"]: item["scene_action"] for item in VISIBLE_AGENTS}
+def _simulation_results() -> list[SimulationResult]:
+    return [
+        SimulationResult(
+            candidate=Candidate(**asdict(result.candidate)),
+            **{key: value for key, value in asdict(result).items() if key != "candidate"},
+        )
+        for result in run_comparison()
+    ]
 
 
 def _node_name(event: Any) -> str | None:
@@ -42,6 +52,8 @@ def translate_adk_event(event: Any, sequence: int) -> AdkTraceEvent:
     final_check = getattr(event, "is_final_response", None)
     final_response = bool(final_check()) if callable(final_check) else False
     tool_names = _tool_names(event)
+    contract = event_contract_for_node(node or "", _simulation_results())
+    expose_contract = bool(contract and (tool_names or final_response))
     return AdkTraceEvent(
         sequence=sequence,
         author=str(getattr(event, "author", "adk_runtime")),
@@ -51,7 +63,10 @@ def translate_adk_event(event: Any, sequence: int) -> AdkTraceEvent:
         tool_names=tool_names,
         final_response=final_response,
         phase="complete" if final_response else "tool_call" if tool_names else "progress",
-        scene_action=SCENE_BY_NODE.get(node or "") if tool_names else None,
+        scene_action=contract.scene_action if expose_contract else None,
+        summary=contract.summary if expose_contract else None,
+        artifact=contract.artifact if expose_contract else None,
+        scene_patch=contract.scene_patch if expose_contract else None,
     )
 
 

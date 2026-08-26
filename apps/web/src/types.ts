@@ -1,5 +1,32 @@
 export type AgentName = 'Evidence Scout' | 'Nano Designer' | 'Twin Simulator' | 'Safety Steward'
 
+export type ArtifactTone = 'neutral' | 'good' | 'warning' | 'critical'
+
+export interface ArtifactMetric {
+  label: string
+  value: string | number
+  unit?: string | null
+  tone: ArtifactTone
+}
+
+export interface AgentArtifact {
+  kind: 'evidence_bundle' | 'candidate_blueprint' | 'distribution_comparison' | 'safety_decision' | 'approval_boundary'
+  title: string
+  detail: string
+  metrics: ArtifactMetric[]
+  confidence?: number | null
+  evidence_ids: string[]
+}
+
+export interface ScenePatch {
+  action: 'focus_clone' | 'spawn_candidates' | 'run_particle_paths' | 'reject_candidate' | 'show_approval_membrane'
+  camera_target: 'clone_r7' | 'candidate_forge' | 'tumour_core' | 'liver_sink' | 'approval_boundary'
+  overlay: 'clone_signal' | 'candidate_blueprints' | 'distribution_paths' | 'safety_quarantine' | 'approval_membrane'
+  candidate_ids: string[]
+  simulation_hour?: number | null
+  emphasis: 'evidence' | 'design' | 'delivery' | 'risk' | 'authority'
+}
+
 export interface AgentEvent {
   sequence: number
   agent: AgentName
@@ -8,6 +35,8 @@ export interface AgentEvent {
   evidence_ids: string[]
   scene_action?: string
   tool_names?: string[]
+  artifact?: AgentArtifact | null
+  scene_patch?: ScenePatch | null
 }
 
 export type AdkTraceStatus = 'disabled' | 'queued' | 'running' | 'succeeded' | 'fallback'
@@ -22,6 +51,9 @@ export interface AdkTraceEvent {
   final_response: boolean
   phase: 'progress' | 'tool_call' | 'complete'
   scene_action?: string | null
+  summary?: string | null
+  artifact?: AgentArtifact | null
+  scene_patch?: ScenePatch | null
 }
 
 export interface CandidateResult {

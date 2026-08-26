@@ -29,6 +29,9 @@ class AdkRuntimeTests(unittest.TestCase):
         self.assertEqual(payload["tool_names"], ["simulate_nano_candidate"])
         self.assertEqual(payload["phase"], "tool_call")
         self.assertEqual(payload["scene_action"], "run_particle_paths")
+        self.assertEqual(payload["artifact"]["kind"], "distribution_comparison")
+        self.assertEqual(payload["scene_patch"]["camera_target"], "tumour_core")
+        self.assertIn("24 h", payload["summary"])
         self.assertNotIn("args", str(payload))
         self.assertNotIn("must-not-persist", str(payload))
 

@@ -5,6 +5,20 @@ from pydantic import BaseModel, Field
 
 AgentName = Literal["Evidence Scout", "Nano Designer", "Twin Simulator", "Safety Steward"]
 MissionState = Literal["running", "awaiting_human_approval", "approved", "failed"]
+SceneAction = Literal[
+    "focus_clone",
+    "spawn_candidates",
+    "run_particle_paths",
+    "reject_candidate",
+    "show_approval_membrane",
+]
+ArtifactKind = Literal[
+    "evidence_bundle",
+    "candidate_blueprint",
+    "distribution_comparison",
+    "safety_decision",
+    "approval_boundary",
+]
 
 
 class Candidate(BaseModel):
@@ -30,6 +44,43 @@ class SimulationResult(BaseModel):
     reason: str
 
 
+class ArtifactMetric(BaseModel):
+    label: str
+    value: str | int | float
+    unit: str | None = None
+    tone: Literal["neutral", "good", "warning", "critical"] = "neutral"
+
+
+class AgentArtifact(BaseModel):
+    kind: ArtifactKind
+    title: str
+    detail: str
+    metrics: list[ArtifactMetric] = Field(default_factory=list)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class ScenePatch(BaseModel):
+    action: SceneAction
+    camera_target: Literal[
+        "clone_r7",
+        "candidate_forge",
+        "tumour_core",
+        "liver_sink",
+        "approval_boundary",
+    ]
+    overlay: Literal[
+        "clone_signal",
+        "candidate_blueprints",
+        "distribution_paths",
+        "safety_quarantine",
+        "approval_membrane",
+    ]
+    candidate_ids: list[str] = Field(default_factory=list)
+    simulation_hour: float | None = Field(default=None, ge=0, le=24)
+    emphasis: Literal["evidence", "design", "delivery", "risk", "authority"]
+
+
 class AgentEvent(BaseModel):
     sequence: int
     agent: AgentName
@@ -37,6 +88,8 @@ class AgentEvent(BaseModel):
     summary: str
     evidence_ids: list[str] = Field(default_factory=list)
     scene_action: str | None = None
+    artifact: AgentArtifact | None = None
+    scene_patch: ScenePatch | None = None
 
 
 class MissionReceipt(BaseModel):
@@ -74,6 +127,9 @@ class AdkTraceEvent(BaseModel):
     final_response: bool = False
     phase: Literal["progress", "tool_call", "complete"] = "progress"
     scene_action: str | None = None
+    summary: str | None = None
+    artifact: AgentArtifact | None = None
+    scene_patch: ScenePatch | None = None
 
 
 class AdkMissionTrace(BaseModel):

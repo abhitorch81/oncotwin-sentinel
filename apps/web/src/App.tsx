@@ -11,6 +11,7 @@ import { demoMission } from './lib/demo'
 import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
+import './styles/mission-theatre.css'
 
 const ACTIVE_MISSION_KEY = 'oncotwin.activeMissionId'
 
@@ -36,13 +37,15 @@ export default function App() {
       const status = event.phase === 'complete'
         ? agent === 'Safety Steward' ? 'blocked' : 'complete'
         : 'working'
-      const summary = event.phase === 'tool_call'
+      const fallbackSummary = event.phase === 'tool_call'
         ? `Called bounded tool: ${event.tool_names.join(', ').replaceAll('_', ' ')}.`
         : event.phase === 'complete'
           ? agent === 'Safety Steward' ? 'Policy complete. Autonomy paused for human approval.' : 'Output validated and handed to the next agent.'
           : 'Gemini is processing this governed workflow node.'
-      return { sequence: event.sequence, agent, status, summary, evidence_ids: [],
-        scene_action: event.scene_action || undefined, tool_names: event.tool_names }
+      return { sequence: event.sequence, agent, status, summary: event.summary || fallbackSummary,
+        evidence_ids: event.artifact?.evidence_ids || [],
+        scene_action: event.scene_patch?.action || event.scene_action || undefined,
+        tool_names: event.tool_names, artifact: event.artifact, scene_patch: event.scene_patch }
     }), [adkEvents])
   const displayEvents = useDeterministicTrace ? mission?.events || [] : liveAgentEvents
   const displayVisible = useDeterministicTrace ? visible : displayEvents.length
@@ -50,6 +53,7 @@ export default function App() {
     adkStatus === 'succeeded' || (useDeterministicTrace && visible >= (mission?.events.length || 0))
   )
   const sceneAction = [...displayEvents].reverse().find(event => event.scene_action)?.scene_action
+  const activeArtifact = [...displayEvents].slice(0, displayVisible).reverse().find(event => event.artifact)?.artifact
 
   useEffect(() => {
     if (!mission || !useDeterministicTrace || visible >= mission.events.length) return
@@ -116,6 +120,10 @@ export default function App() {
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
         <div className="scene-key"><span className="cyan">A · ACCEPTABLE</span><span className="red">B · REJECTED</span><span className="green">C · PREFERRED</span></div>
+        {activeArtifact && <div className={`scene-artifact artifact-${activeArtifact.kind}`}>
+          <small>ACTIVE WORK PRODUCT</small><strong>{activeArtifact.title}</strong>
+          <span>{activeArtifact.detail}</span>
+        </div>}
         {!mission && <button className="investigate" onClick={() => run(demoMission.prompt)}><ScanSearch size={18} /> BEGIN NANO SAFETY MISSION</button>}
         {mission && presentationComplete && <CandidateComparison results={mission.receipt.results} />}
       </div>
