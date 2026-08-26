@@ -60,7 +60,7 @@ export default function App() {
 
   useEffect(() => {
     if (!mission || !useDeterministicTrace || visible >= mission.events.length) return
-    const timer = window.setTimeout(() => setVisible(v => v + 1), visible === 0 ? 250 : 1100)
+    const timer = window.setTimeout(() => setVisible(v => v + 1), visible === 0 ? 250 : 1600)
     return () => window.clearTimeout(timer)
   }, [mission, visible, useDeterministicTrace])
 

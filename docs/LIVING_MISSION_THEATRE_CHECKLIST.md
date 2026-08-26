@@ -24,8 +24,8 @@ git diff --check
 
 ## Checkpoint 2 — evolving 3D theatre
 
-- [ ] Choreograph the camera by `camera_target` rather than one static composition.
-- [ ] Add clone isolation, candidate forge, distribution paths, quarantine, and approval overlays.
+- [x] Choreograph the camera by `camera_target` rather than one static composition.
+- [x] Add clone isolation, candidate forge, distribution paths, quarantine, and approval overlays.
 - [ ] Make candidate A/B/C geometries scientifically distinct and selectable.
 - [ ] Keep stable frame rate and reduced-motion fallback.
 
