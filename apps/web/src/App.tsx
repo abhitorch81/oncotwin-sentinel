@@ -8,7 +8,7 @@ import { EvidenceReceipt } from './components/EvidenceReceipt'
 import { TwinScene } from './components/TwinScene'
 import { approveMission, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
-import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, MemoryProof, Mission } from './types'
+import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, CandidateId, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
 import './styles/mission-theatre.css'
@@ -26,6 +26,7 @@ export default function App() {
   const [approvalError, setApprovalError] = useState<string | null>(null)
   const [adkStatus, setAdkStatus] = useState<AdkTraceStatus>('disabled')
   const [adkEvents, setAdkEvents] = useState<AdkTraceEvent[]>([])
+  const [selectedCandidateId, setSelectedCandidateId] = useState<CandidateId | null>(null)
   const closeStream = useRef<(() => void) | null>(null)
   const approved = mission?.state === 'approved'
 
@@ -57,6 +58,7 @@ export default function App() {
   const sceneAction = activeSceneEvent?.scene_patch?.action || activeSceneEvent?.scene_action
   const scenePatch = activeSceneEvent?.scene_patch || undefined
   const activeArtifact = [...visibleSceneEvents].reverse().find(event => event.artifact)?.artifact
+  const selectedResult = mission?.receipt.results.find(result => result.candidate.id === selectedCandidateId)
 
   useEffect(() => {
     if (!mission || !useDeterministicTrace || visible >= mission.events.length) return
@@ -79,7 +81,7 @@ export default function App() {
 
   const run = async (prompt: string) => {
     closeStream.current?.()
-    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null)
+    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null)
     try {
       const created = await startMission(prompt)
       setMission(created); setFallback(false); window.localStorage.setItem(ACTIVE_MISSION_KEY, created.id)
@@ -119,7 +121,9 @@ export default function App() {
     <div className="truth-boundary"><FlaskConical size={13} /> Synthetic research simulation — not medical advice, diagnosis, or treatment.</div>
     <section className="stage">
       <div className="viewport">
-        <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')} sceneAction={sceneAction} scenePatch={scenePatch} />
+        <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')}
+          onCandidateSelect={setSelectedCandidateId} selectedCandidateId={selectedCandidateId}
+          sceneAction={sceneAction} scenePatch={scenePatch} />
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
         <div className="scene-key"><span className="cyan">A · ACCEPTABLE</span><span className="red">B · REJECTED</span><span className="green">C · PREFERRED</span></div>
@@ -130,8 +134,23 @@ export default function App() {
         {scenePatch && <div className={`scene-camera-cue cue-${scenePatch.emphasis}`}>
           <i /><span>CAMERA LOCK</span><strong>{scenePatch.camera_target.replaceAll('_', ' ')}</strong>
         </div>}
+        {selectedResult && <div className={`candidate-inspector ${selectedResult.decision}`}>
+          <button type="button" aria-label="Close candidate inspection" onClick={() => setSelectedCandidateId(null)}>×</button>
+          <small>SELECTED SYNTHETIC CANDIDATE · {selectedResult.candidate.id}</small>
+          <h3>{selectedResult.candidate.name}<em>{selectedResult.decision}</em></h3>
+          <div className="inspector-parameters">
+            <span><i>SIZE</i><b>{selectedResult.candidate.particle_size_nm} nm</b></span>
+            <span><i>CHARGE</i><b>{selectedResult.candidate.surface_charge_mv} mV</b></span>
+            <span><i>LIGAND</i><b>{Math.round(selectedResult.candidate.ligand_affinity * 100)}%</b></span>
+            <span><i>STEALTH</i><b>{Math.round(selectedResult.candidate.stealth_score * 100)}%</b></span>
+            <span><i>TUMOUR</i><b>{Math.round(selectedResult.tumour_payload_release * 100)}%</b></span>
+            <span><i>LIVER</i><b>{Math.round(selectedResult.liver_accumulation * 100)}%</b></span>
+          </div>
+          <p>{selectedResult.reason}</p>
+        </div>}
         {!mission && <button className="investigate" onClick={() => run(demoMission.prompt)}><ScanSearch size={18} /> BEGIN NANO SAFETY MISSION</button>}
-        {mission && presentationComplete && <CandidateComparison results={mission.receipt.results} />}
+        {mission && presentationComplete && <CandidateComparison results={mission.receipt.results}
+          selectedId={selectedCandidateId} onSelect={setSelectedCandidateId} />}
       </div>
       <div className="right-rail">
         <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} receiptHash={mission?.receipt?.receipt_sha256} />

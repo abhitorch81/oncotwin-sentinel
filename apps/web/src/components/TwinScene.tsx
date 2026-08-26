@@ -4,13 +4,30 @@ import { useEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import type { ScenePatch } from '../types'
+import type { CandidateId, ScenePatch } from '../types'
 
 const R7_POSITION: [number, number, number] = [
   Math.sin(7 * 4.1) * (1 + (7 % 5) * .08),
   Math.cos(7 * 2.3) * .78,
   Math.sin(7 * 1.7) * .72,
 ]
+
+const candidateVisuals: Record<CandidateId, {
+  name: string
+  color: string
+  radius: number
+  forgePosition: [number, number, number]
+  dockPosition: [number, number, number]
+}> = {
+  A: { name: 'ASTER-48', color: '#44d7ff', radius: .5, forgePosition: [-2.25, 1.25, -.35], dockPosition: [-1.45, -1.25, .25] },
+  B: { name: 'BRIMSTONE-92', color: '#ff3f61', radius: .82, forgePosition: [0, 1.35, -.45], dockPosition: [0, -1.25, .25] },
+  C: { name: 'CALYX-61', color: '#75ffbd', radius: .62, forgePosition: [2.25, 1.25, -.35], dockPosition: [1.45, -1.25, .25] },
+}
+
+const surfaceDirections = [
+  [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+  [1, 1, 1], [-1, 1, 1], [1, -1, 1], [1, 1, -1], [-1, -1, 1], [-1, 1, -1],
+].map(([x, y, z]) => new THREE.Vector3(x, y, z).normalize())
 
 const cameraShots: Record<ScenePatch['camera_target'] | 'overview', {
   position: [number, number, number]
@@ -98,21 +115,97 @@ function Tumour({ onSelect, overlay }: { onSelect: () => void; overlay?: ScenePa
 }
 
 function CandidateForgeOverlay() {
-  const group = useRef<THREE.Group>(null)
   const slots = [
     { id: 'A', color: '#44d7ff', position: [-2.25, 1.25, -.35] as [number, number, number] },
     { id: 'B', color: '#ff3f61', position: [0, 1.35, -.45] as [number, number, number] },
     { id: 'C', color: '#75ffbd', position: [2.25, 1.25, -.35] as [number, number, number] },
   ]
-  useFrame((_, delta) => { if (group.current) group.current.rotation.y += delta * .08 })
-  return <group ref={group}>
+  return <group>
     {slots.map((slot, index) => <Float key={slot.id} speed={1.4 + index * .15} floatIntensity={.12} position={slot.position}>
       <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.52, .018, 10, 64]} /><meshBasicMaterial color={slot.color} transparent opacity={.75} /></mesh>
-      <mesh scale={.42}><icosahedronGeometry args={[1, 2]} /><meshPhysicalMaterial color={slot.color} emissive={slot.color} emissiveIntensity={.7} transparent opacity={.13} wireframe /></mesh>
-      <Text position={[0, -.72, 0]} fontSize={.15} color={slot.color} anchorX="center">{slot.id} · FORGING</Text>
+      <Text position={[0, -.72, 0]} fontSize={.13} color={slot.color} anchorX="center">{slot.id} · FORGE SLOT</Text>
     </Float>)}
     <Line points={[[-3.1, .25, 0], [3.1, .25, 0]]} color="#604f91" transparent opacity={.34} lineWidth={1} />
   </group>
+}
+
+function CandidateSurface({ id, color, radius }: { id: CandidateId; color: string; radius: number }) {
+  const features = useMemo(() => surfaceDirections.map(direction => {
+    const surface = direction.clone().multiplyScalar(radius * 1.02)
+    const tip = direction.clone().multiplyScalar(radius * (id === 'B' ? 1.42 : 1.34))
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction)
+    return { surface, tip, quaternion }
+  }), [id, radius])
+  if (id === 'A') return <>
+    <mesh><sphereGeometry args={[radius * 1.18, 28, 20]} /><meshPhysicalMaterial color={color} transparent opacity={.1} transmission={.25} wireframe /></mesh>
+    {features.slice(0, 8).map((feature, index) => <mesh key={index} position={feature.tip.clone().multiplyScalar(.9)}>
+      <sphereGeometry args={[.035, 8, 8]} /><meshBasicMaterial color="#b9f5ff" transparent opacity={.72} />
+    </mesh>)}
+  </>
+  if (id === 'B') return <>{features.map((feature, index) =>
+    <mesh key={index} position={feature.tip.clone().lerp(feature.surface, .48)} quaternion={feature.quaternion}>
+      <coneGeometry args={[.075, radius * .42, 7]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={.8} />
+    </mesh>)}</>
+  return <>{features.map((feature, index) => <group key={index}>
+    <Line points={[feature.surface, feature.tip]} color={color} transparent opacity={.74} lineWidth={.7} />
+    <mesh position={feature.tip}><octahedronGeometry args={[.065, 0]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.3} /></mesh>
+  </group>)}</>
+}
+
+function CandidateBody({ id, docked, selected, quarantined, preferred, onSelect }: {
+  id: CandidateId
+  docked: boolean
+  selected: boolean
+  quarantined: boolean
+  preferred: boolean
+  onSelect: (id: CandidateId) => void
+}) {
+  const group = useRef<THREE.Group>(null)
+  const selection = useRef<THREE.Mesh>(null)
+  const visual = candidateVisuals[id]
+  const targetPosition = useMemo(() => new THREE.Vector3(...(docked ? visual.dockPosition : visual.forgePosition)), [docked, visual])
+  const targetScale = (docked ? .62 : 1) * (selected ? 1.13 : 1)
+  const targetScaleVector = useMemo(() => new THREE.Vector3(targetScale, targetScale, targetScale), [targetScale])
+  useEffect(() => () => { document.body.style.cursor = 'default' }, [])
+  useFrame(({ clock }, delta) => {
+    if (!group.current) return
+    const alpha = 1 - Math.exp(-4 * Math.min(delta, .1))
+    group.current.position.lerp(targetPosition, alpha)
+    group.current.scale.lerp(targetScaleVector, alpha)
+    group.current.rotation.y += delta * (id === 'B' ? .42 : .28)
+    if (selection.current) {
+      selection.current.rotation.z = clock.elapsedTime * .55
+      selection.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 3) * .04)
+    }
+  })
+  return <group ref={group} position={visual.forgePosition}
+    onClick={event => { event.stopPropagation(); onSelect(id) }}
+    onPointerOver={event => { event.stopPropagation(); document.body.style.cursor = 'pointer' }}
+    onPointerOut={() => { document.body.style.cursor = 'default' }}>
+    <mesh scale={visual.radius}>
+      {id === 'A' ? <sphereGeometry args={[1, 28, 22]} /> : id === 'B' ? <dodecahedronGeometry args={[1, 1]} /> : <icosahedronGeometry args={[1, 2]} />}
+      <meshPhysicalMaterial color={visual.color} emissive={visual.color} emissiveIntensity={selected ? 1.25 : .55}
+        metalness={id === 'B' ? .2 : .05} roughness={id === 'A' ? .18 : .3} transmission={id === 'A' ? .24 : .08} />
+    </mesh>
+    <CandidateSurface id={id} color={visual.color} radius={visual.radius} />
+    {(selected || quarantined || preferred) && <mesh ref={selection} rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[visual.radius * 1.62, .025, 10, 72]} />
+      <meshBasicMaterial color={quarantined ? '#ff315e' : preferred ? '#75ffbd' : '#f3fbff'} transparent opacity={.88} />
+    </mesh>}
+    <Text position={[0, -visual.radius * 1.65, 0]} fontSize={docked ? .13 : .16} color={visual.color} anchorX="center">{id} · {visual.name}</Text>
+    {(quarantined || preferred) && <Text position={[0, visual.radius * 1.65, 0]} fontSize={.1}
+      color={quarantined ? '#ff6682' : '#75ffbd'} anchorX="center">{quarantined ? 'QUARANTINED' : 'PREFERRED'}</Text>}
+  </group>
+}
+
+function CandidateGallery({ rank, selectedId, onSelect }: {
+  rank: number
+  selectedId?: CandidateId | null
+  onSelect: (id: CandidateId) => void
+}) {
+  return <group>{(['A', 'B', 'C'] as CandidateId[]).map(id =>
+    <CandidateBody key={id} id={id} docked={rank >= 3} selected={selectedId === id}
+      quarantined={rank >= 4 && id === 'B'} preferred={rank >= 4 && id === 'C'} onSelect={onSelect} />)}</group>
 }
 
 function NanoPath({ id, color, destination, speed, opacity = .7 }: {
@@ -210,7 +303,13 @@ const actionRank: Record<string, number> = {
   reject_candidate: 4, show_approval_membrane: 5,
 }
 
-export function TwinScene({ onCloneSelect, sceneAction, scenePatch }: { onCloneSelect: () => void; sceneAction?: string; scenePatch?: ScenePatch }) {
+export function TwinScene({ onCloneSelect, onCandidateSelect, selectedCandidateId, sceneAction, scenePatch }: {
+  onCloneSelect: () => void
+  onCandidateSelect: (id: CandidateId) => void
+  selectedCandidateId?: CandidateId | null
+  sceneAction?: string
+  scenePatch?: ScenePatch
+}) {
   const rank = actionRank[sceneAction || ''] || 0
   const controls = useRef<OrbitControlsImpl>(null)
   return <Canvas camera={{ position: [0, 1.1, 7.2], fov: 44 }} dpr={[1, 1.7]}>
@@ -222,6 +321,7 @@ export function TwinScene({ onCloneSelect, sceneAction, scenePatch }: { onCloneS
     <Sparkles count={120} scale={[12, 7, 7]} size={1.2} speed={.25} color="#5de7ff" opacity={.2} />
     <Tumour onSelect={onCloneSelect} overlay={scenePatch?.overlay} />
     <SceneOverlay overlay={scenePatch?.overlay} rank={rank} />
+    {rank >= 2 && <CandidateGallery rank={rank} selectedId={selectedCandidateId} onSelect={onCandidateSelect} />}
     {rank >= 3 && <OrganGhost position={[3.1, 1.15, -1.2]} label="LIVER RISK" color="#ff985d" />}
     {rank >= 3 && <OrganGhost position={[3.35, -1.3, -.7]} label="KIDNEY RISK" color="#b85cff" />}
     <OrbitControls ref={controls} enablePan={false} minDistance={3.8} maxDistance={10} enableDamping dampingFactor={.08} />

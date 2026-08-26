@@ -1,4 +1,5 @@
 export type AgentName = 'Evidence Scout' | 'Nano Designer' | 'Twin Simulator' | 'Safety Steward'
+export type CandidateId = 'A' | 'B' | 'C'
 
 export type ArtifactTone = 'neutral' | 'good' | 'warning' | 'critical'
 
@@ -22,7 +23,7 @@ export interface ScenePatch {
   action: 'focus_clone' | 'spawn_candidates' | 'run_particle_paths' | 'reject_candidate' | 'show_approval_membrane'
   camera_target: 'clone_r7' | 'candidate_forge' | 'tumour_core' | 'liver_sink' | 'approval_boundary'
   overlay: 'clone_signal' | 'candidate_blueprints' | 'distribution_paths' | 'safety_quarantine' | 'approval_membrane'
-  candidate_ids: string[]
+  candidate_ids: CandidateId[]
   simulation_hour?: number | null
   emphasis: 'evidence' | 'design' | 'delivery' | 'risk' | 'authority'
 }
@@ -58,7 +59,7 @@ export interface AdkTraceEvent {
 
 export interface CandidateResult {
   candidate: {
-    id: string; name: string; particle_size_nm: number; surface_charge_mv: number
+    id: CandidateId; name: string; particle_size_nm: number; surface_charge_mv: number
     ligand_affinity: number; stealth_score: number; release_half_life_hours: number; biodegradability: number
   }
   tumour_penetration: number
@@ -79,8 +80,8 @@ export interface Mission {
   events: AgentEvent[]
   receipt: {
     results: CandidateResult[]
-    preferred_candidate_id: string
-    rejected_candidate_ids: string[]
+    preferred_candidate_id: CandidateId
+    rejected_candidate_ids: CandidateId[]
     receipt_sha256: string
     prior_memory_used?: string[]
     policy_version?: string
