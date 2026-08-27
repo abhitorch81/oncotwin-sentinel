@@ -1,7 +1,78 @@
 import asyncio
+from copy import deepcopy
 import unittest
 
-from apps.api.app.adk_runtime import AdkExecutionService, AdkTraceRepository, translate_adk_event
+from apps.api.app.adk_runtime import (
+    AdkExecutionService,
+    AdkTraceRepository,
+    FirestoreAdkTraceRepository,
+    create_adk_trace_repository,
+    translate_adk_event,
+)
+from apps.api.app.models import AdkMissionTrace, AdkTraceEvent
+
+
+class _Snapshot:
+    def __init__(self, payload):
+        self.payload = payload
+        self.exists = payload is not None
+
+    def to_dict(self):
+        return deepcopy(self.payload)
+
+
+class _Document:
+    def __init__(self, client, collection, document_id):
+        self.client = client
+        self.key = (collection, document_id)
+
+    def get(self):
+        return _Snapshot(deepcopy(self.client.store.get(self.key)))
+
+
+class _Collection:
+    def __init__(self, client, name):
+        self.client = client
+        self.name = name
+
+    def document(self, document_id):
+        return _Document(self.client, self.name, document_id)
+
+
+class _Batch:
+    def __init__(self, client):
+        self.client = client
+        self.operations = []
+
+    def set(self, document, payload, merge=False):
+        self.operations.append((document, deepcopy(payload), merge))
+
+    def commit(self):
+        for document, payload, merge in self.operations:
+            if merge:
+                existing = deepcopy(self.client.store.get(document.key, {}))
+                existing.update(payload)
+                payload = existing
+            self.client.store[document.key] = deepcopy(payload)
+
+
+class _Client:
+    def __init__(self):
+        self.store = {}
+        self.closed = False
+
+    def collection(self, name):
+        return _Collection(self, name)
+
+    def batch(self):
+        return _Batch(self)
+
+    def close(self):
+        self.closed = True
+
+
+class _Firestore:
+    SERVER_TIMESTAMP = "server-timestamp"
 
 
 class _Call:
@@ -74,6 +145,52 @@ class AdkRuntimeTests(unittest.TestCase):
         translated = translate_adk_event(FinalEvent(), 2)
         self.assertEqual(translated.phase, "complete")
         self.assertEqual(translated.tool_names, [])
+
+    def test_firestore_trace_survives_repository_reconstruction(self):
+        async def scenario():
+            client = _Client()
+            first = FirestoreAdkTraceRepository(
+                "test-project", client=client, firestore_module=_Firestore
+            )
+            trace = AdkMissionTrace(
+                mission_id="nano-durable",
+                status="succeeded",
+                model="gemini-2.5-flash",
+                model_call_executed=True,
+                events=[
+                    AdkTraceEvent(
+                        sequence=1,
+                        author="evidence_scout",
+                        visible_agent="Evidence Scout",
+                        node_name="evidence_scout",
+                        event_type="Event",
+                        final_response=True,
+                        phase="complete",
+                    )
+                ],
+            )
+            await first.save(trace)
+            reconstructed = FirestoreAdkTraceRepository(
+                "test-project", client=client, firestore_module=_Firestore
+            )
+            restored = await reconstructed.get("nano-durable")
+            return trace, restored, client.store
+
+        trace, restored, store = asyncio.run(scenario())
+        self.assertEqual(restored, trace)
+        payload = store[("adk_traces", "nano-durable")]
+        self.assertNotIn("prompt", payload)
+        self.assertNotIn("credentials", str(payload))
+        self.assertNotIn("reasoning", str(payload))
+
+    def test_trace_factory_uses_memory_when_firestore_is_disabled(self):
+        repository = create_adk_trace_repository(
+            firestore_enabled=False,
+            project_id="",
+            firestore_database="(default)",
+            demo_mode=True,
+        )
+        self.assertEqual(repository.configured_backend, "in_memory")
 
 
 if __name__ == "__main__":

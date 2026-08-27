@@ -10,7 +10,7 @@ from .config import get_settings
 from .bounded_reruns import build_bounded_rerun_preview, is_bounded_rerun_command
 from .contextual_explanations import build_contextual_explanation
 from .adk_fleet import adk_runtime_status
-from .adk_runtime import AdkExecutionService, AdkTraceRepository
+from .adk_runtime import AdkExecutionService, create_adk_trace_repository
 from .memory import create_mission_repository
 from .mission_service import MissionService
 from .models import ApprovalRequest, CommandRequest, StartMissionRequest
@@ -25,13 +25,19 @@ repository = create_mission_repository(
     demo_mode=settings.demo_mode,
 )
 service = MissionService(repository)
-adk_trace_repository = AdkTraceRepository()
+adk_trace_repository = create_adk_trace_repository(
+    firestore_enabled=settings.firestore_enabled,
+    project_id=settings.google_cloud_project,
+    firestore_database=settings.firestore_database,
+    demo_mode=settings.demo_mode,
+)
 adk_execution = AdkExecutionService(adk_trace_repository)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     yield
+    await adk_trace_repository.close()
     repository.close()
 
 
@@ -48,7 +54,8 @@ def health() -> dict:
             "edition": "google-native-milestone-1", "mode": "demo" if settings.demo_mode else "live",
             "medical_use": "synthetic_research_only", "human_approval_required": True,
             "adk_enabled": settings.adk_enabled,
-            "memory_backend_configured": repository.configured_backend}
+            "memory_backend_configured": repository.configured_backend,
+            "adk_trace_backend_configured": adk_trace_repository.configured_backend}
 
 
 @app.get("/api/architecture/proof")
@@ -56,7 +63,7 @@ def architecture_proof() -> dict:
     return {
         "implemented": ["four-agent visible trace", "deterministic nano simulator", "SSE events",
                         "fail-closed approval", "receipt hashing", "3D action contract",
-                        "Firestore mission memory", "demo fallback"],
+                        "Firestore mission memory", "Firestore ADK traces", "demo fallback"],
         "next_connectors": ["Gemini Live gateway", "synthetic image evidence"],
         "deployment_target": ["Cloud Run", "Secret Manager", "Cloud Logging"],
         "cloud_scope": "google_cloud_only",
@@ -214,7 +221,9 @@ def memory_proof() -> dict:
     """Judge-facing persistence proof with no connection details or sensitive payloads."""
     return {
         **repository.proof(),
-        "stores": ["missions", "mission_receipts", "approval_events", "resume_cursor"],
+        "stores": ["missions", "mission_receipts", "approval_events", "resume_cursor",
+                   "adk_traces"],
+        "adk_trace_backend": adk_trace_repository.configured_backend,
         "credentials_exposed": False,
         "standalone_memory_ui": False,
     }

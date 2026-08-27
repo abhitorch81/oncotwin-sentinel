@@ -103,3 +103,19 @@
   liver-ceiling breach moved from T+18H to T+19H, the panel remained explicitly
   `PREVIEW ONLY · NOT STORED`, and the original Firestore receipt and stored-mission count
   remained unchanged.
+
+## Production repair — durable ADK traces
+
+- Production mission `nano-efe5210fd8` exposed that missions survived in Firestore while
+  `/adk-trace` returned `ADK trace not initialized` and `/adk-events` remained `queued`.
+- Root cause: the sanitized ADK trace repository was process-local, so a different Cloud
+  Run instance or scale-to-zero could retrieve the mission but not its agent execution.
+- Adds an `adk_traces` Firestore collection for queued, running, succeeded and fallback
+  states plus privacy-safe translated agent events.
+- The persisted contract excludes prompts, raw model output, tool arguments, credentials
+  and model reasoning. Local/demo operation retains the in-memory repository.
+- Health, architecture and memory proofs now report the configured trace backend.
+- Participant verification completed: 42 backend tests and the frontend production build
+  passed. Mission `nano-11f4dfd2dc` remained available after the API process restarted,
+  returned `status: succeeded`, retained 12 translated events across all four visible
+  agents, reported `model_call_executed: true`, and had no fallback reason.

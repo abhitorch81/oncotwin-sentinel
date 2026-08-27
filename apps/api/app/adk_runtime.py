@@ -3,7 +3,7 @@
 import asyncio
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any
+from typing import Any, Protocol
 
 from .agent_artifacts import event_contract_for_node
 from .adk_fleet import VISIBLE_AGENTS, build_adk_fleet
@@ -74,7 +74,21 @@ def translate_adk_event(event: Any, sequence: int, memory_count: int = 0) -> Adk
     )
 
 
+class AdkTraceStore(Protocol):
+    configured_backend: str
+
+    async def save(self, trace: AdkMissionTrace) -> None: ...
+
+    async def get(self, mission_id: str) -> AdkMissionTrace | None: ...
+
+    async def close(self) -> None: ...
+
+
 class AdkTraceRepository:
+    """Process-local trace storage for local development and tests."""
+
+    configured_backend = "in_memory"
+
     def __init__(self) -> None:
         self._traces: dict[str, AdkMissionTrace] = {}
         self._lock = asyncio.Lock()
@@ -88,12 +102,98 @@ class AdkTraceRepository:
             trace = self._traces.get(mission_id)
             return deepcopy(trace) if trace else None
 
+    async def close(self) -> None:
+        return None
+
+
+class FirestoreAdkTraceRepository:
+    """Durable privacy-safe ADK traces shared by every Cloud Run instance."""
+
+    configured_backend = "firestore"
+
+    def __init__(
+        self,
+        project_id: str,
+        *,
+        database: str = "(default)",
+        collection: str = "adk_traces",
+        client: Any | None = None,
+        firestore_module: Any | None = None,
+    ) -> None:
+        if client is None or firestore_module is None:
+            from google.cloud import firestore
+
+            firestore_module = firestore
+            client = firestore.Client(project=project_id or None, database=database)
+        self._client = client
+        self._firestore = firestore_module
+        self._traces = client.collection(collection)
+
+    def _save_sync(self, trace: AdkMissionTrace) -> None:
+        # Persist only the sanitized trace contract. Prompts, tool arguments, credentials,
+        # model reasoning and raw model content never enter this collection.
+        payload = {
+            "mission_id": trace.mission_id,
+            "status": trace.status,
+            "model": trace.model,
+            "model_call_executed": trace.model_call_executed,
+            "fallback_reason": trace.fallback_reason,
+            "trace": trace.model_dump(mode="json"),
+            "updated_at": self._firestore.SERVER_TIMESTAMP,
+            "synthetic_research_only": True,
+        }
+        batch = self._client.batch()
+        batch.set(self._traces.document(trace.mission_id), payload, merge=True)
+        batch.commit()
+
+    async def save(self, trace: AdkMissionTrace) -> None:
+        await asyncio.to_thread(self._save_sync, deepcopy(trace))
+
+    def _get_sync(self, mission_id: str) -> AdkMissionTrace | None:
+        snapshot = self._traces.document(mission_id).get()
+        if not snapshot.exists:
+            return None
+        serialized = (snapshot.to_dict() or {}).get("trace")
+        return AdkMissionTrace.model_validate(serialized) if serialized else None
+
+    async def get(self, mission_id: str) -> AdkMissionTrace | None:
+        return await asyncio.to_thread(self._get_sync, mission_id)
+
+    async def close(self) -> None:
+        close = getattr(self._client, "close", None)
+        if close:
+            await asyncio.to_thread(close)
+
+
+def create_adk_trace_repository(
+    *,
+    firestore_enabled: bool,
+    project_id: str,
+    firestore_database: str,
+    demo_mode: bool,
+    client: Any | None = None,
+    firestore_module: Any | None = None,
+) -> AdkTraceStore:
+    if not firestore_enabled:
+        return AdkTraceRepository()
+    try:
+        return FirestoreAdkTraceRepository(
+            project_id,
+            database=firestore_database,
+            client=client,
+            firestore_module=firestore_module,
+        )
+    except Exception:
+        if not demo_mode:
+            raise
+        return AdkTraceRepository()
+
 
 class AdkExecutionService:
     APP_NAME = "oncotwin-sentinel"
     USER_ID = "synthetic-research-demo"
 
-    def __init__(self, repository: AdkTraceRepository) -> None:
+    def __init__(self, repository: AdkTraceStore) -> None:
         self.repository = repository
 
     async def prepare(self, mission_id: str, model: str, enabled: bool) -> AdkMissionTrace:
