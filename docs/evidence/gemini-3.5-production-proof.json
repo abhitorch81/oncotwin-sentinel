@@ -1,0 +1,39 @@
+{
+  "proof_type": "production_google_technology_eligibility",
+  "verified_at": "2026-08-27",
+  "release": "abc3087",
+  "cloud_run": {
+    "api_revision": "oncotwin-agentic-api-00008-qqf",
+    "web_revision": "oncotwin-agentic-web-00004-mzn",
+    "traffic_percent": 100
+  },
+  "gemini": {
+    "model": "gemini-3.5-flash",
+    "access": "vertex_ai",
+    "minimum_version_met": true
+  },
+  "agent_framework": {
+    "name": "Google ADK",
+    "version": "2.8.0",
+    "workflow": "ADK2GraphWorkflow"
+  },
+  "google_cloud_infrastructure": [
+    "Cloud Run",
+    "Firestore"
+  ],
+  "production_mission": {
+    "mission_id": "nano-2c99e4c2cb",
+    "status": "succeeded",
+    "event_count": 12,
+    "visible_agents": [
+      "Evidence Scout",
+      "Nano Designer",
+      "Twin Simulator",
+      "Safety Steward"
+    ],
+    "model_call_executed": true,
+    "fallback_reason": null
+  },
+  "requirements_met": true,
+  "synthetic_research_only": true
+}

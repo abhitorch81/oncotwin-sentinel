@@ -139,7 +139,7 @@
   Firestore reported the child among 37 stored missions; and the authority membrane remained
   paused with `REVIEW & APPROVE`, proving the child inherited no parent approval.
 
-## Checkpoint 3E — Google eligibility upgrade (production verification pending)
+## Checkpoint 3E — Google eligibility upgrade
 
 - Changes all runtime and Cloud Run deployment defaults from `gemini-2.5-flash` to the
   stable `gemini-3.5-flash` model through Vertex AI in the global location.
@@ -152,3 +152,11 @@
   least one Google Cloud infrastructure service are all truthfully configured.
 - Preserves older trace files as historical evidence; only a new production mission may
   supply the final `model_call_executed: true` Gemini 3.5 proof.
+- Participant verification completed: 49 backend tests and the TypeScript/Vite production
+  build passed. Cloud Run release `abc3087` deployed API revision
+  `oncotwin-agentic-api-00008-qqf` and web revision `oncotwin-agentic-web-00004-mzn` at
+  100% traffic. Production eligibility reported Gemini 3.5 Flash through Vertex AI,
+  Google ADK 2.8.0, Cloud Run and Firestore with `requirements_met: true`.
+- Production mission `nano-2c99e4c2cb` completed the four-agent `ADK2GraphWorkflow` with
+  model `gemini-3.5-flash`, 12 privacy-safe events, `model_call_executed: true`, and no
+  fallback reason.
