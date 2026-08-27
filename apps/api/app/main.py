@@ -8,12 +8,13 @@ from fastapi.responses import StreamingResponse
 
 from .config import get_settings
 from .bounded_reruns import build_bounded_rerun_preview, is_bounded_rerun_command
+from .child_reruns import persist_bounded_rerun_child
 from .contextual_explanations import build_contextual_explanation
 from .adk_fleet import adk_runtime_status
 from .adk_runtime import AdkExecutionService, create_adk_trace_repository
 from .memory import create_mission_repository
 from .mission_service import MissionService
-from .models import ApprovalRequest, CommandRequest, StartMissionRequest
+from .models import ApprovalRequest, CommandRequest, PersistRerunRequest, StartMissionRequest
 from .nano_simulator import DEFAULT_CANDIDATES
 from .security import ApprovalDenied, validate_approval
 
@@ -189,6 +190,20 @@ def command(mission_id: str, request: CommandRequest) -> dict:
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     return explanation.model_dump()
+
+
+@app.post("/api/nano/missions/{mission_id}/reruns/persist")
+def persist_rerun(mission_id: str, request: PersistRerunRequest) -> dict:
+    parent = repository.get(mission_id)
+    if not parent:
+        raise HTTPException(404, "Parent mission not found")
+    try:
+        child = persist_bounded_rerun_child(repository, parent, request)
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return child.model_dump()
 
 
 @app.post("/api/nano/missions/{mission_id}/request-approval")

@@ -1,4 +1,4 @@
-import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, CandidateId, MemoryProof, Mission, MissionCommandResponse } from '../types'
+import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, BoundedRerunPreview, CandidateId, MemoryProof, Mission, MissionCommandResponse, PersistedChildRun } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -46,6 +46,28 @@ export async function askMissionQuestion(
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: string } | null
     throw new Error(payload?.detail || 'Contextual explanation unavailable')
+  }
+  return response.json()
+}
+
+export async function persistRerunPreview(
+  missionId: string,
+  preview: BoundedRerunPreview,
+): Promise<PersistedChildRun> {
+  const response = await fetch(`${API}/api/nano/missions/${missionId}/reruns/persist`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      actor: 'demo-researcher',
+      channel: 'ui',
+      confirmation: 'PERSIST SYNTHETIC CHILD RUN',
+      preview_id: preview.preview_id,
+      candidate_id: preview.candidate_id,
+      requested_size_nm: preview.change.requested_value,
+    }),
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null
+    throw new Error(payload?.detail || 'Child mission could not be persisted')
   }
   return response.json()
 }

@@ -35,7 +35,7 @@ git diff --check
 - [x] Let users inspect candidates and ask why a candidate was rejected.
 - [x] Support bounded reruns such as “reduce particle size and rerun.”
 - [x] Persist privacy-safe ADK traces across Cloud Run instances and scale-to-zero.
-- [ ] Store child-run receipts and parent mission lineage in Firestore.
+- [x] Store child-run receipts and parent mission lineage in Firestore.
 
 ## Checkpoint 4 — Gemini Live multimodal control
 

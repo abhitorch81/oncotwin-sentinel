@@ -119,3 +119,22 @@
   passed. Mission `nano-11f4dfd2dc` remained available after the API process restarted,
   returned `status: succeeded`, retained 12 translated events across all four visible
   agents, reported `model_call_executed: true`, and had no fallback reason.
+
+## Checkpoint 3D — persisted child-run lineage
+
+- Adds an explicit UI-only authority endpoint that rebuilds and verifies a bounded preview
+  server-side before creating a child mission.
+- Uses a deterministic child identifier so retries are idempotent and cannot create duplicate
+  receipts from the same preview.
+- Stores parent/root mission IDs, preview provenance, the exact parameter change, actor and
+  persistence channel with the child mission and its new immutable receipt hash.
+- Leaves the parent receipt and approval state untouched; every child starts at
+  `awaiting_human_approval` and requires its own approval event.
+- Rejects voice/API persistence, missing confirmation and tampered preview identifiers before
+  any repository write.
+- Adds a parent→child lineage row to the evidence receipt and a visible human-persisted child
+  state in the 3D theatre.
+- Participant verification completed: candidate B was persisted as a 70 nm child mission;
+  the evidence receipt displayed the parent and child IDs plus the exact 92→70 nm change;
+  Firestore reported the child among 37 stored missions; and the authority membrane remained
+  paused with `REVIEW & APPROVE`, proving the child inherited no parent approval.

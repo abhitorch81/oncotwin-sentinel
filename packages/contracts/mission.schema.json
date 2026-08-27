@@ -9,7 +9,8 @@
     "prompt": { "type": "string", "minLength": 10 },
     "state": { "enum": ["running", "awaiting_human_approval", "approved", "failed"] },
     "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
-    "receipt": { "$ref": "#/$defs/receipt" }
+    "receipt": { "$ref": "#/$defs/receipt" },
+    "lineage": { "anyOf": [{ "$ref": "#/$defs/missionLineage" }, { "type": "null" }] }
   },
   "$defs": {
     "event": {
@@ -121,6 +122,46 @@
         "scene_patch": { "$ref": "#/$defs/scenePatch" },
         "source_receipt_sha256_prefix": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
         "preview_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "approval_granted": { "const": false }
+      }
+    },
+    "boundedParameterChange": {
+      "type": "object",
+      "required": ["parameter", "previous_value", "requested_value", "minimum", "maximum", "unit"],
+      "properties": {
+        "parameter": { "const": "particle_size_nm" },
+        "previous_value": { "type": "number" },
+        "requested_value": { "type": "number", "minimum": 35, "maximum": 120 },
+        "minimum": { "const": 35 },
+        "maximum": { "const": 120 },
+        "unit": { "const": "nm" }
+      }
+    },
+    "missionLineage": {
+      "type": "object",
+      "required": ["relation", "parent_mission_id", "root_mission_id", "source_preview_id", "source_preview_sha256", "source_receipt_sha256", "candidate_id", "parameter_changes", "persisted_by", "persisted_channel"],
+      "properties": {
+        "relation": { "const": "bounded_rerun" },
+        "parent_mission_id": { "type": "string", "pattern": "^nano-" },
+        "root_mission_id": { "type": "string", "pattern": "^nano-" },
+        "source_preview_id": { "type": "string", "pattern": "^preview-[a-f0-9]{12}$" },
+        "source_preview_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "source_receipt_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "candidate_id": { "enum": ["A", "B", "C"] },
+        "parameter_changes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/boundedParameterChange" } },
+        "persisted_by": { "type": "string", "minLength": 1 },
+        "persisted_channel": { "const": "ui" }
+      }
+    },
+    "persistedChildRun": {
+      "type": "object",
+      "required": ["kind", "persisted", "lineage_status", "parent_mission_id", "child_mission", "approval_granted"],
+      "properties": {
+        "kind": { "const": "persisted_child_run" },
+        "persisted": { "const": true },
+        "lineage_status": { "const": "child_receipt" },
+        "parent_mission_id": { "type": "string", "pattern": "^nano-" },
+        "child_mission": { "$ref": "#" },
         "approval_granted": { "const": false }
       }
     },

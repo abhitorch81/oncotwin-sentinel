@@ -114,6 +114,12 @@
 .rerun-preview small { color: #62ddf2; }
 .rerun-preview.rerun-rejected { border-color: rgba(255, 184, 104, .42); }
 .rerun-preview.rerun-rejected small { color: #ffb868; }
+.rerun-preview > .persist-rerun { width: 100%; margin-top: 9px; padding: 8px 10px; border: 1px solid rgba(117, 255, 189, .38); border-radius: 8px; background: rgba(117, 255, 189, .08); color: #75ffbd; font: 650 7px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; cursor: pointer; }
+.rerun-preview > .persist-rerun:hover { background: rgba(117, 255, 189, .14); }
+.rerun-preview > .persist-rerun:disabled { cursor: wait; opacity: .55; }
+.persisted-child-artifact { border-color: rgba(117, 255, 189, .38); box-shadow: 0 18px 50px rgba(0, 0, 0, .34), inset 0 0 28px rgba(117, 255, 189, .05); }
+.persisted-child-artifact small { color: #75ffbd; }
+.persisted-child-artifact code { display: block; margin-top: 8px; color: #70d9b0; font-size: 6px; }
 .explanation-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 9px; }
 .explanation-metrics i { padding: 6px; border: 1px solid rgba(115, 145, 168, .12); border-radius: 6px; background: rgba(115, 145, 168, .06); font-style: normal; }
 .explanation-metrics em { display: block; overflow: hidden; color: #72869a; font: 600 6px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-style: normal; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }

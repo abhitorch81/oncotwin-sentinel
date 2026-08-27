@@ -107,6 +107,25 @@ export interface Mission {
     policy_version?: string
     evidence_ids?: string[]
   }
+  lineage?: {
+    relation: 'bounded_rerun'
+    parent_mission_id: string
+    root_mission_id: string
+    source_preview_id: string
+    source_preview_sha256: string
+    source_receipt_sha256: string
+    candidate_id: CandidateId
+    parameter_changes: Array<{
+      parameter: 'particle_size_nm'
+      previous_value: number
+      requested_value: number
+      minimum: number
+      maximum: number
+      unit: 'nm'
+    }>
+    persisted_by: string
+    persisted_channel: 'ui'
+  } | null
   approval_requested?: boolean
   approved_by?: string | null
 }
@@ -177,6 +196,15 @@ export interface BoundedRerunPreview {
   scene_patch: ScenePatch
   source_receipt_sha256_prefix: string
   preview_sha256: string
+  approval_granted: false
+}
+
+export interface PersistedChildRun {
+  kind: 'persisted_child_run'
+  persisted: true
+  lineage_status: 'child_receipt'
+  parent_mission_id: string
+  child_mission: Mission
   approval_granted: false
 }
 

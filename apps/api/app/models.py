@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -116,6 +118,19 @@ class MissionReceipt(BaseModel):
     receipt_sha256: str
 
 
+class MissionLineage(BaseModel):
+    relation: Literal["bounded_rerun"] = "bounded_rerun"
+    parent_mission_id: str
+    root_mission_id: str
+    source_preview_id: str
+    source_preview_sha256: str
+    source_receipt_sha256: str
+    candidate_id: Literal["A", "B", "C"]
+    parameter_changes: list["BoundedParameterChange"]
+    persisted_by: str
+    persisted_channel: Literal["ui"] = "ui"
+
+
 class Mission(BaseModel):
     id: str
     prompt: str
@@ -123,6 +138,7 @@ class Mission(BaseModel):
     created_at: str
     events: list[AgentEvent]
     receipt: MissionReceipt | None = None
+    lineage: MissionLineage | None = None
     approval_requested: bool = False
     approved_by: str | None = None
 
@@ -213,6 +229,24 @@ class BoundedRerunPreview(BaseModel):
     scene_patch: ScenePatch
     source_receipt_sha256_prefix: str
     preview_sha256: str
+    approval_granted: bool = False
+
+
+class PersistRerunRequest(BaseModel):
+    actor: str
+    channel: Literal["ui", "voice", "api"] = "ui"
+    confirmation: str
+    preview_id: str
+    candidate_id: Literal["A", "B", "C"]
+    requested_size_nm: float = Field(ge=35, le=120)
+
+
+class PersistedChildRun(BaseModel):
+    kind: Literal["persisted_child_run"] = "persisted_child_run"
+    persisted: bool = True
+    lineage_status: Literal["child_receipt"] = "child_receipt"
+    parent_mission_id: str
+    child_mission: Mission
     approval_granted: bool = False
 
 

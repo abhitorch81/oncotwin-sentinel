@@ -8,7 +8,7 @@ import { EvidenceReceipt } from './components/EvidenceReceipt'
 import { SimulationScrubber } from './components/SimulationScrubber'
 import { TwinScene } from './components/TwinScene'
 import type { RenderQuality } from './components/TwinScene'
-import { approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
+import { approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, persistRerunPreview, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
 import { buildFallbackTimeline } from './lib/timeline'
 import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, BoundedRerunPreview, CandidateId, ContextualExplanation, MemoryProof, Mission } from './types'
@@ -35,6 +35,7 @@ export default function App() {
   const [simulationHour, setSimulationHour] = useState(24)
   const [explanation, setExplanation] = useState<ContextualExplanation | null>(null)
   const [rerun, setRerun] = useState<BoundedRerunPreview | null>(null)
+  const [persistBusy, setPersistBusy] = useState(false)
   const closeStream = useRef<(() => void) | null>(null)
   const runLock = useRef(false)
   const askLock = useRef(false)
@@ -171,6 +172,22 @@ export default function App() {
       setApprovalError(error instanceof Error ? error.message : 'Approval could not be recorded')
     } finally { setApprovalBusy(false) }
   }
+  const persistRerun = async () => {
+    if (!mission || !rerun || persistBusy) return
+    if (fallback) { setApprovalError('Demo fallback cannot persist an auditable child receipt. Restore the API connection first.'); return }
+    setPersistBusy(true); setApprovalError(null)
+    try {
+      const response = await persistRerunPreview(mission.id, rerun)
+      const child = response.child_mission
+      closeStream.current?.()
+      setMission(child); setRerun(null); setExplanation(null); setVisible(0); setAdkEvents([]); setAdkStatus('disabled')
+      setSelectedCandidateId(null); setSimulationHour(24); setRestored(false)
+      window.localStorage.setItem(ACTIVE_MISSION_KEY, child.id)
+      setMemoryProof(await getMemoryProof())
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Child mission could not be persisted')
+    } finally { setPersistBusy(false) }
+  }
 
   return <main>
     <header className="topbar">
@@ -200,6 +217,9 @@ export default function App() {
             <i className="good"><em>NEW TUMOUR</em><b>{Math.round(rerun.after.tumour_payload_release * 100)}%</b></i>
           </div>
           <code>PREVIEW ONLY · NOT STORED · {rerun.preview_sha256.slice(0, 12)}</code>
+          <button type="button" className="persist-rerun" disabled={persistBusy} onClick={persistRerun}>
+            {persistBusy ? 'PERSISTING CHILD RECEIPT…' : 'PERSIST AS CHILD RUN · HUMAN ACTION'}
+          </button>
         </div> : explanation ? <div className={`scene-artifact contextual-explanation explanation-${explanation.decision}`}>
           <button type="button" className="explanation-close" aria-label="Close Safety Steward explanation" onClick={() => setExplanation(null)}>×</button>
           <small>SAFETY STEWARD · VOICE-READY</small><strong>{explanation.candidate_id} · {explanation.decision}</strong>
@@ -207,6 +227,11 @@ export default function App() {
           <div className="explanation-metrics">{explanation.metrics.map(metric => <i className={metric.tone} key={metric.label}>
             <em>{metric.label}</em><b>{metric.value}{metric.unit || ''}</b></i>)}</div>
           <code>{explanation.evidence_ids.join(' · ')} · {explanation.source_receipt_sha256_prefix}</code>
+        </div> : mission?.lineage ? <div className="scene-artifact persisted-child-artifact">
+          <small>CHILD RECEIPT · HUMAN-PERSISTED</small>
+          <strong>{mission.lineage.candidate_id} bounded rerun stored</strong>
+          <span>Parent evidence remains immutable. This child requires its own human approval.</span>
+          <code>{mission.lineage.parent_mission_id} → {mission.id}</code>
         </div> : activeArtifact && <div className={`scene-artifact artifact-${activeArtifact.kind}`}>
           <small>ACTIVE WORK PRODUCT</small><strong>{activeArtifact.title}</strong>
           <span>{activeArtifact.detail}</span>
@@ -248,6 +273,6 @@ export default function App() {
 
     <CommandCapsule running={running} onRun={mission ? ask : run} contextual={Boolean(mission)}
       suggestion={mission ? selectedCandidateId ? `Why was candidate ${selectedCandidateId} ${selectedResult?.decision || 'classified'}?` : 'Why was candidate B rejected?' : undefined} />
-    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>3D {renderQuality.toUpperCase()}{reducedMotion ? ' · REDUCED MOTION' : ' · ADAPTIVE'}</span></footer>
+    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : mission?.lineage ? 'BOUNDED CHILD · LOCAL TRACE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>3D {renderQuality.toUpperCase()}{reducedMotion ? ' · REDUCED MOTION' : ' · ADAPTIVE'}</span></footer>
   </main>
 }

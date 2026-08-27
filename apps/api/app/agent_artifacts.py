@@ -42,16 +42,33 @@ def evidence_event(sequence: int, memory_count: int) -> AgentEvent:
     )
 
 
-def designer_event(sequence: int) -> AgentEvent:
+def designer_event(sequence: int, results: list[SimulationResult] | None = None) -> AgentEvent:
+    if results:
+        by_id = {result.candidate.id: result.candidate for result in results}
+        metrics = [
+            ArtifactMetric(
+                label=f"{candidate_id} · {by_id[candidate_id].name.split('-')[0]}",
+                value=f"{by_id[candidate_id].particle_size_nm:g} nm / {by_id[candidate_id].surface_charge_mv:+g} mV",
+                tone="warning" if candidate_id == "B" else "good" if candidate_id == "C" else "neutral",
+            )
+            for candidate_id in ("A", "B", "C")
+        ]
+        summary = "Forged " + ", ".join(
+            f"{candidate_id} {by_id[candidate_id].particle_size_nm:g} nm/{by_id[candidate_id].surface_charge_mv:+g} mV"
+            for candidate_id in ("A", "B", "C")
+        ) + " inside the bounded design envelope."
+    else:
+        metrics = [
+            ArtifactMetric(label="A · Aster", value="48 nm / -8 mV", tone="neutral"),
+            ArtifactMetric(label="B · Brimstone", value="92 nm / +22 mV", tone="warning"),
+            ArtifactMetric(label="C · Calyx", value="61 nm / -4 mV", tone="good"),
+        ]
+        summary = "Forged A 48 nm/-8 mV, B 92 nm/+22 mV, and C 61 nm/-4 mV inside the bounded design envelope."
     artifact = AgentArtifact(
         kind="candidate_blueprint",
         title="Three bounded nano blueprints",
         detail="Particle size, surface charge, ligand affinity, and release timing stay inside the synthetic envelope.",
-        metrics=[
-            ArtifactMetric(label="A · Aster", value="48 nm / -8 mV", tone="neutral"),
-            ArtifactMetric(label="B · Brimstone", value="92 nm / +22 mV", tone="warning"),
-            ArtifactMetric(label="C · Calyx", value="61 nm / -4 mV", tone="good"),
-        ],
+        metrics=metrics,
         confidence=.96,
         evidence_ids=["PARAM-ENVELOPE-V1"],
     )
@@ -66,7 +83,7 @@ def designer_event(sequence: int) -> AgentEvent:
         sequence=sequence,
         agent="Nano Designer",
         status="complete",
-        summary="Forged A 48 nm/-8 mV, B 92 nm/+22 mV, and C 61 nm/-4 mV inside the bounded design envelope.",
+        summary=summary,
         evidence_ids=artifact.evidence_ids,
         scene_action=patch.action,
         artifact=artifact,
