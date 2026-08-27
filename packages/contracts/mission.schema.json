@@ -73,8 +73,9 @@
     },
     "contextualExplanation": {
       "type": "object",
-      "required": ["mission_id", "agent", "candidate_id", "decision", "explanation", "spoken_text", "focus_hour", "metrics", "evidence_ids", "scene_patch", "source_receipt_sha256_prefix", "approval_granted"],
+      "required": ["kind", "mission_id", "agent", "candidate_id", "decision", "explanation", "spoken_text", "focus_hour", "metrics", "evidence_ids", "scene_patch", "source_receipt_sha256_prefix", "approval_granted"],
       "properties": {
+        "kind": { "const": "contextual_explanation" },
         "mission_id": { "type": "string", "pattern": "^nano-" },
         "agent": { "const": "Safety Steward" },
         "candidate_id": { "enum": ["A", "B", "C"] },
@@ -86,6 +87,40 @@
         "evidence_ids": { "type": "array", "items": { "type": "string" } },
         "scene_patch": { "$ref": "#/$defs/scenePatch" },
         "source_receipt_sha256_prefix": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
+        "approval_granted": { "const": false }
+      }
+    },
+    "boundedRerunPreview": {
+      "type": "object",
+      "required": ["kind", "parent_mission_id", "preview_id", "persisted", "lineage_status", "candidate_id", "change", "before", "after", "results", "timeline", "summary", "spoken_text", "scene_patch", "source_receipt_sha256_prefix", "preview_sha256", "approval_granted"],
+      "properties": {
+        "kind": { "const": "bounded_rerun" },
+        "parent_mission_id": { "type": "string", "pattern": "^nano-" },
+        "preview_id": { "type": "string", "pattern": "^preview-[a-f0-9]{12}$" },
+        "persisted": { "const": false },
+        "lineage_status": { "const": "preview_only" },
+        "candidate_id": { "enum": ["A", "B", "C"] },
+        "change": {
+          "type": "object",
+          "required": ["parameter", "previous_value", "requested_value", "minimum", "maximum", "unit"],
+          "properties": {
+            "parameter": { "const": "particle_size_nm" },
+            "previous_value": { "type": "number" },
+            "requested_value": { "type": "number", "minimum": 35, "maximum": 120 },
+            "minimum": { "const": 35 },
+            "maximum": { "const": 120 },
+            "unit": { "const": "nm" }
+          }
+        },
+        "before": { "type": "object" },
+        "after": { "type": "object" },
+        "results": { "type": "array", "minItems": 3, "maxItems": 3 },
+        "timeline": { "type": "array", "minItems": 75, "maxItems": 75, "items": { "$ref": "#/$defs/simulationFrame" } },
+        "summary": { "type": "string" },
+        "spoken_text": { "type": "string" },
+        "scene_patch": { "$ref": "#/$defs/scenePatch" },
+        "source_receipt_sha256_prefix": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
+        "preview_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "approval_granted": { "const": false }
       }
     },

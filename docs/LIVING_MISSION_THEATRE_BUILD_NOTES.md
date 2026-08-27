@@ -66,7 +66,7 @@
   four agents with no fallback; Evidence Scout recovered three prior Firestore receipts;
   and the browser console remained free of WebGL errors while the timeline rendered.
 
-## Checkpoint 3B — contextual candidate explanation (pending participant verification)
+## Checkpoint 3B — contextual candidate explanation
 
 - Adds a receipt-grounded `/commands` response tied to selected candidate and simulation
   hour instead of starting another mission.
@@ -81,3 +81,25 @@
 - Visual review exposed the candidate inspector covering the contextual evidence card.
   The explanation now becomes the single active inspection panel, and its close control
   restores the selected candidate inspector without clearing scene selection.
+- Participant verification completed: B selected the liver-sink camera, moved the receipt
+  timeline to T+18H, displayed the 46% first breach against the 45% ceiling and the 68%
+  T+24H value, exposed policy/simulation receipt provenance without panel overlap, and
+  preserved the human-authority boundary.
+
+## Checkpoint 3C — bounded rerun preview
+
+- Adds a typed `bounded_rerun` command path for explicit particle sizes inside the
+  35–120 nm synthetic research envelope.
+- Recomputes all candidates and all 75 temporal frames while leaving the parent Firestore
+  receipt, receipt hash, and approval state untouched.
+- Drives the same 3D particle bodies, timeline, comparison cards and organ-risk scene from
+  preview results; B visibly contracts from 92 nm to 70 nm.
+- B at 70 nm improves tumour payload from 49% to 61%, but liver accumulation only falls
+  from 68% to 66%, so the simulator truthfully keeps it rejected.
+- Returns `persisted: false`, `lineage_status: preview_only`, and `approval_granted: false`;
+  persisted parent/child receipt lineage remains Checkpoint 3D.
+- Participant verification completed: Brimstone-70 rendered with a visibly smaller body,
+  61% tumour payload and 66% liver accumulation while remaining rejected. The first
+  liver-ceiling breach moved from T+18H to T+19H, the panel remained explicitly
+  `PREVIEW ONLY · NOT STORED`, and the original Firestore receipt and stored-mission count
+  remained unchanged.

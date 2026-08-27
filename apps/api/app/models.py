@@ -164,6 +164,7 @@ class CommandRequest(BaseModel):
 
 
 class ContextualExplanation(BaseModel):
+    kind: Literal["contextual_explanation"] = "contextual_explanation"
     accepted: bool = True
     mission_id: str
     agent: Literal["Safety Steward"] = "Safety Steward"
@@ -178,6 +179,40 @@ class ContextualExplanation(BaseModel):
     evidence_ids: list[str]
     scene_patch: ScenePatch
     source_receipt_sha256_prefix: str
+    approval_granted: bool = False
+
+
+class BoundedParameterChange(BaseModel):
+    parameter: Literal["particle_size_nm"] = "particle_size_nm"
+    previous_value: float
+    requested_value: float
+    minimum: float = 35
+    maximum: float = 120
+    unit: Literal["nm"] = "nm"
+
+
+class BoundedRerunPreview(BaseModel):
+    kind: Literal["bounded_rerun"] = "bounded_rerun"
+    accepted: bool = True
+    parent_mission_id: str
+    preview_id: str
+    persisted: bool = False
+    lineage_status: Literal["preview_only"] = "preview_only"
+    channel: Literal["text", "voice", "scene"]
+    command: str
+    candidate_id: Literal["A", "B", "C"]
+    change: BoundedParameterChange
+    before: SimulationResult
+    after: SimulationResult
+    results: list[SimulationResult]
+    timeline: list[SimulationFrame]
+    summary: str
+    spoken_text: str
+    focus_hour: int = 24
+    evidence_ids: list[str]
+    scene_patch: ScenePatch
+    source_receipt_sha256_prefix: str
+    preview_sha256: str
     approval_granted: bool = False
 
 

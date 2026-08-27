@@ -32,8 +32,8 @@ git diff --check
 ## Checkpoint 3 — direct scientific interaction
 
 - [x] Add a 0–24 hour simulation scrubber.
-- [ ] Let users inspect candidates and ask why a candidate was rejected.
-- [ ] Support bounded reruns such as “reduce particle size and rerun.”
+- [x] Let users inspect candidates and ask why a candidate was rejected.
+- [x] Support bounded reruns such as “reduce particle size and rerun.”
 - [ ] Store child-run receipts and parent mission lineage in Firestore.
 
 ## Checkpoint 4 — Gemini Live multimodal control

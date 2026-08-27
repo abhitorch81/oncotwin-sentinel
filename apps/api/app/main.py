@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .config import get_settings
+from .bounded_reruns import build_bounded_rerun_preview, is_bounded_rerun_command
 from .contextual_explanations import build_contextual_explanation
 from .adk_fleet import adk_runtime_status
 from .adk_runtime import AdkExecutionService, AdkTraceRepository
@@ -163,6 +164,14 @@ def command(mission_id: str, request: CommandRequest) -> dict:
     if not mission:
         raise HTTPException(404, "Mission not found")
     try:
+        if is_bounded_rerun_command(request.command):
+            preview = build_bounded_rerun_preview(
+                mission,
+                command=request.command,
+                selected_candidate_id=request.selected_candidate_id,
+                channel=request.channel,
+            )
+            return preview.model_dump()
         explanation = build_contextual_explanation(
             mission,
             question=request.command,

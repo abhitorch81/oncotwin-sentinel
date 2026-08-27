@@ -11,7 +11,7 @@ import type { RenderQuality } from './components/TwinScene'
 import { approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
 import { buildFallbackTimeline } from './lib/timeline'
-import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, CandidateId, ContextualExplanation, MemoryProof, Mission } from './types'
+import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, BoundedRerunPreview, CandidateId, ContextualExplanation, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
 import './styles/mission-theatre.css'
@@ -34,6 +34,7 @@ export default function App() {
   const [reducedMotion, setReducedMotion] = useState(false)
   const [simulationHour, setSimulationHour] = useState(24)
   const [explanation, setExplanation] = useState<ContextualExplanation | null>(null)
+  const [rerun, setRerun] = useState<BoundedRerunPreview | null>(null)
   const closeStream = useRef<(() => void) | null>(null)
   const runLock = useRef(false)
   const askLock = useRef(false)
@@ -67,14 +68,16 @@ export default function App() {
   const sceneAction = activeSceneEvent?.scene_patch?.action || activeSceneEvent?.scene_action
   const scenePatch = activeSceneEvent?.scene_patch || undefined
   const activeArtifact = [...visibleSceneEvents].reverse().find(event => event.artifact)?.artifact
-  const selectedResult = mission?.receipt.results.find(result => result.candidate.id === selectedCandidateId)
+  const activeResults = rerun?.results || mission?.receipt.results || []
+  const selectedResult = activeResults.find(result => result.candidate.id === selectedCandidateId)
   const timeline = useMemo(() => {
     if (!mission) return []
+    if (rerun) return rerun.timeline
     return mission.receipt.timeline?.length ? mission.receipt.timeline : buildFallbackTimeline(mission.receipt.results)
-  }, [mission])
+  }, [mission, rerun])
   const simulationFrames = useMemo(() => timeline.filter(frame => frame.hour === simulationHour), [simulationHour, timeline])
   const selectedFrame = simulationFrames.find(frame => frame.candidate_id === selectedCandidateId)
-  const effectiveScenePatch = explanation?.scene_patch || scenePatch
+  const effectiveScenePatch = rerun?.scene_patch || explanation?.scene_patch || scenePatch
   const updatePerformance = useCallback((quality: RenderQuality, reduced: boolean) => {
     setRenderQuality(quality)
     setReducedMotion(reduced)
@@ -82,6 +85,7 @@ export default function App() {
   const selectCandidate = useCallback((candidateId: CandidateId | null) => {
     setSelectedCandidateId(candidateId)
     setExplanation(null)
+    setRerun(null)
   }, [])
   const changeSimulationHour = useCallback((hour: number) => {
     setSimulationHour(hour)
@@ -119,7 +123,7 @@ export default function App() {
     if (runLock.current) return
     runLock.current = true
     closeStream.current?.()
-    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24); setExplanation(null)
+    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24); setExplanation(null); setRerun(null)
     try {
       const created = await startMission(prompt)
       setMission(created); setFallback(false); window.localStorage.setItem(ACTIVE_MISSION_KEY, created.id)
@@ -140,7 +144,13 @@ export default function App() {
     setRunning(true); setApprovalError(null)
     try {
       const response = await askMissionQuestion(mission.id, question, selectedCandidateId, simulationHour)
-      setExplanation(response)
+      if (response.kind === 'bounded_rerun') {
+        setRerun(response)
+        setExplanation(null)
+      } else {
+        setExplanation(response)
+        setRerun(null)
+      }
       setSelectedCandidateId(response.candidate_id)
       setSimulationHour(response.focus_hour)
     } catch (error) {
@@ -174,12 +184,23 @@ export default function App() {
       <div className="viewport">
         <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')}
           onCandidateSelect={selectCandidate} selectedCandidateId={selectedCandidateId}
-          sceneAction={explanation?.scene_patch.action || sceneAction} scenePatch={explanation?.scene_patch || scenePatch} onPerformanceChange={updatePerformance}
-          simulationHour={simulationHour} simulationFrames={simulationFrames} />
+          sceneAction={rerun?.scene_patch.action || explanation?.scene_patch.action || sceneAction}
+          scenePatch={rerun?.scene_patch || explanation?.scene_patch || scenePatch} onPerformanceChange={updatePerformance}
+          simulationHour={simulationHour} simulationFrames={simulationFrames} candidateResults={activeResults} />
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
         <div className="scene-key"><span className="cyan">A · ACCEPTABLE</span><span className="red">B · REJECTED</span><span className="green">C · PREFERRED</span></div>
-        {explanation ? <div className={`scene-artifact contextual-explanation explanation-${explanation.decision}`}>
+        {rerun ? <div className={`scene-artifact contextual-explanation rerun-preview rerun-${rerun.after.decision}`}>
+          <button type="button" className="explanation-close" aria-label="Close bounded rerun preview" onClick={() => setRerun(null)}>×</button>
+          <small>TWIN SIMULATOR · BOUNDED PREVIEW</small><strong>{rerun.candidate_id} · {rerun.change.previous_value} → {rerun.change.requested_value} NM</strong>
+          <span>{rerun.summary}</span>
+          <div className="explanation-metrics">
+            <i className="neutral"><em>OLD LIVER</em><b>{Math.round(rerun.before.liver_accumulation * 100)}%</b></i>
+            <i className="warning"><em>NEW LIVER</em><b>{Math.round(rerun.after.liver_accumulation * 100)}%</b></i>
+            <i className="good"><em>NEW TUMOUR</em><b>{Math.round(rerun.after.tumour_payload_release * 100)}%</b></i>
+          </div>
+          <code>PREVIEW ONLY · NOT STORED · {rerun.preview_sha256.slice(0, 12)}</code>
+        </div> : explanation ? <div className={`scene-artifact contextual-explanation explanation-${explanation.decision}`}>
           <button type="button" className="explanation-close" aria-label="Close Safety Steward explanation" onClick={() => setExplanation(null)}>×</button>
           <small>SAFETY STEWARD · VOICE-READY</small><strong>{explanation.candidate_id} · {explanation.decision}</strong>
           <span>{explanation.explanation}</span>
@@ -193,7 +214,7 @@ export default function App() {
         {effectiveScenePatch && <div className={`scene-camera-cue cue-${effectiveScenePatch.emphasis}`}>
           <i /><span>CAMERA LOCK</span><strong>{effectiveScenePatch.camera_target.replaceAll('_', ' ')}</strong>
         </div>}
-        {selectedResult && !explanation && <div className={`candidate-inspector ${selectedResult.decision}`}>
+        {selectedResult && !explanation && !rerun && <div className={`candidate-inspector ${selectedResult.decision}`}>
           <button type="button" className="inspector-close" aria-label="Close candidate inspection" onClick={() => selectCandidate(null)}>×</button>
           <small>SELECTED SYNTHETIC CANDIDATE · {selectedResult.candidate.id}</small>
           <h3>{selectedResult.candidate.name}<em>{selectedResult.decision}</em></h3>
@@ -209,10 +230,13 @@ export default function App() {
           <button type="button" className="explain-candidate" onClick={() => ask(`Why was candidate ${selectedResult.candidate.id} ${selectedResult.decision}?`)}>
             ASK SAFETY STEWARD WHY
           </button>
+          {selectedResult.candidate.id === 'B' && <button type="button" className="rerun-candidate" onClick={() => ask('Reduce candidate B to 70 nm and rerun')}>
+            PREVIEW B AT 70 NM
+          </button>}
         </div>}
         {!mission && <button className="investigate" onClick={() => run(demoMission.prompt)}><ScanSearch size={18} /> BEGIN NANO SAFETY MISSION</button>}
         {mission && presentationComplete && <SimulationScrubber hour={simulationHour} timeline={timeline} onChange={changeSimulationHour} />}
-        {mission && presentationComplete && <CandidateComparison results={mission.receipt.results}
+        {mission && presentationComplete && <CandidateComparison results={activeResults}
           selectedId={selectedCandidateId} onSelect={selectCandidate} frames={simulationFrames} hour={simulationHour} />}
       </div>
       <div className="right-rail">

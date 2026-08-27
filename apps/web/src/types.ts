@@ -130,6 +130,7 @@ export interface ApprovalResponse {
 }
 
 export interface ContextualExplanation {
+  kind: 'contextual_explanation'
   accepted: boolean
   mission_id: string
   agent: 'Safety Steward'
@@ -146,3 +147,37 @@ export interface ContextualExplanation {
   source_receipt_sha256_prefix: string
   approval_granted: false
 }
+
+export interface BoundedRerunPreview {
+  kind: 'bounded_rerun'
+  accepted: boolean
+  parent_mission_id: string
+  preview_id: string
+  persisted: false
+  lineage_status: 'preview_only'
+  channel: 'text' | 'voice' | 'scene'
+  command: string
+  candidate_id: CandidateId
+  change: {
+    parameter: 'particle_size_nm'
+    previous_value: number
+    requested_value: number
+    minimum: number
+    maximum: number
+    unit: 'nm'
+  }
+  before: CandidateResult
+  after: CandidateResult
+  results: CandidateResult[]
+  timeline: SimulationFrame[]
+  summary: string
+  spoken_text: string
+  focus_hour: number
+  evidence_ids: string[]
+  scene_patch: ScenePatch
+  source_receipt_sha256_prefix: string
+  preview_sha256: string
+  approval_granted: false
+}
+
+export type MissionCommandResponse = ContextualExplanation | BoundedRerunPreview

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import type { CandidateId, ScenePatch, SimulationFrame } from '../types'
+import type { CandidateId, CandidateResult, ScenePatch, SimulationFrame } from '../types'
 
 export type RenderQuality = 'high' | 'balanced' | 'conservative'
 
@@ -228,8 +228,10 @@ function CandidateSurface({ id, color, radius }: { id: CandidateId; color: strin
   </group>)}</>
 }
 
-function CandidateBody({ id, docked, selected, quarantined, preferred, onSelect, reducedMotion }: {
+function CandidateBody({ id, name, sizeNm, docked, selected, quarantined, preferred, onSelect, reducedMotion }: {
   id: CandidateId
+  name?: string
+  sizeNm?: number
   docked: boolean
   selected: boolean
   quarantined: boolean
@@ -240,6 +242,8 @@ function CandidateBody({ id, docked, selected, quarantined, preferred, onSelect,
   const group = useRef<THREE.Group>(null)
   const selection = useRef<THREE.Mesh>(null)
   const visual = candidateVisuals[id]
+  const referenceSize = id === 'A' ? 48 : id === 'B' ? 92 : 61
+  const radius = visual.radius * THREE.MathUtils.clamp((sizeNm || referenceSize) / referenceSize, .62, 1.38)
   const targetPosition = useMemo(() => new THREE.Vector3(...(docked ? visual.dockPosition : visual.forgePosition)), [docked, visual])
   const targetScale = (docked ? .62 : 1) * (selected ? 1.13 : 1)
   const targetScaleVector = useMemo(() => new THREE.Vector3(targetScale, targetScale, targetScale), [targetScale])
@@ -259,32 +263,36 @@ function CandidateBody({ id, docked, selected, quarantined, preferred, onSelect,
     onClick={event => { event.stopPropagation(); onSelect(id) }}
     onPointerOver={event => { event.stopPropagation(); document.body.style.cursor = 'pointer' }}
     onPointerOut={() => { document.body.style.cursor = 'default' }}>
-    <mesh scale={visual.radius}>
+    <mesh scale={radius}>
       {id === 'A' ? <sphereGeometry args={[1, 28, 22]} /> : id === 'B' ? <dodecahedronGeometry args={[1, 1]} /> : <icosahedronGeometry args={[1, 2]} />}
       <meshPhysicalMaterial color={visual.color} emissive={visual.color} emissiveIntensity={selected ? 1.25 : .55}
         metalness={id === 'B' ? .2 : .05} roughness={id === 'A' ? .18 : .3} transmission={id === 'A' ? .24 : .08} />
     </mesh>
-    <CandidateSurface id={id} color={visual.color} radius={visual.radius} />
+    <CandidateSurface id={id} color={visual.color} radius={radius} />
     {(selected || quarantined || preferred) && <mesh ref={selection} rotation={[Math.PI / 2, 0, 0]}>
-      <torusGeometry args={[visual.radius * 1.62, .025, 10, 72]} />
+      <torusGeometry args={[radius * 1.62, .025, 10, 72]} />
       <meshBasicMaterial color={quarantined ? '#ff315e' : preferred ? '#75ffbd' : '#f3fbff'} transparent opacity={.88} />
     </mesh>}
-    <Text position={[0, -visual.radius * 1.65, 0]} fontSize={docked ? .13 : .16} color={visual.color} anchorX="center">{id} · {visual.name}</Text>
-    {(quarantined || preferred) && <Text position={[0, visual.radius * 1.65, 0]} fontSize={.1}
+    <Text position={[0, -radius * 1.65, 0]} fontSize={docked ? .13 : .16} color={visual.color} anchorX="center">{id} · {(name || visual.name).toUpperCase()}</Text>
+    {(quarantined || preferred) && <Text position={[0, radius * 1.65, 0]} fontSize={.1}
       color={quarantined ? '#ff6682' : '#75ffbd'} anchorX="center">{quarantined ? 'QUARANTINED' : 'PREFERRED'}</Text>}
   </group>
 }
 
-function CandidateGallery({ rank, selectedId, onSelect, reducedMotion, quarantineActive }: {
+function CandidateGallery({ rank, selectedId, onSelect, reducedMotion, quarantineActive, candidates }: {
   rank: number
   selectedId?: CandidateId | null
   onSelect: (id: CandidateId) => void
   reducedMotion: boolean
   quarantineActive: boolean
+  candidates: CandidateResult[]
 }) {
-  return <group>{(['A', 'B', 'C'] as CandidateId[]).map(id =>
-    <CandidateBody key={id} id={id} docked={rank >= 3} selected={selectedId === id}
-      quarantined={rank >= 4 && quarantineActive && id === 'B'} preferred={rank >= 4 && id === 'C'} onSelect={onSelect} reducedMotion={reducedMotion} />)}</group>
+  return <group>{(['A', 'B', 'C'] as CandidateId[]).map(id => {
+    const result = candidates.find(item => item.candidate.id === id)
+    return <CandidateBody key={id} id={id} name={result?.candidate.name} sizeNm={result?.candidate.particle_size_nm}
+      docked={rank >= 3} selected={selectedId === id}
+      quarantined={rank >= 4 && quarantineActive && id === 'B'} preferred={rank >= 4 && id === 'C'} onSelect={onSelect} reducedMotion={reducedMotion} />
+  })}</group>
 }
 
 function NanoPath({ id, color, destination, speed, opacity = .7, reducedMotion, timeProgress, deliverySignal }: {
@@ -406,7 +414,7 @@ const actionRank: Record<string, number> = {
 }
 
 export function TwinScene({ onCloneSelect, onCandidateSelect, selectedCandidateId, sceneAction, scenePatch,
-  onPerformanceChange, simulationHour = 24, simulationFrames = [] }: {
+  onPerformanceChange, simulationHour = 24, simulationFrames = [], candidateResults = [] }: {
   onCloneSelect: () => void
   onCandidateSelect: (id: CandidateId) => void
   selectedCandidateId?: CandidateId | null
@@ -415,6 +423,7 @@ export function TwinScene({ onCloneSelect, onCandidateSelect, selectedCandidateI
   onPerformanceChange?: (quality: RenderQuality, reducedMotion: boolean) => void
   simulationHour?: number
   simulationFrames?: SimulationFrame[]
+  candidateResults?: CandidateResult[]
 }) {
   const rank = actionRank[sceneAction || ''] || 0
   const tumourSignal = Math.max(0, ...simulationFrames.map(frame => frame.tumour_payload_release))
@@ -453,7 +462,7 @@ export function TwinScene({ onCloneSelect, onCandidateSelect, selectedCandidateI
     <SceneOverlay overlay={scenePatch?.overlay} rank={rank} reducedMotion={reducedMotion}
       hour={simulationHour} frames={simulationFrames} />
     {rank >= 2 && <CandidateGallery rank={rank} selectedId={selectedCandidateId} onSelect={onCandidateSelect}
-      reducedMotion={reducedMotion} quarantineActive={quarantineActive} />}
+      reducedMotion={reducedMotion} quarantineActive={quarantineActive} candidates={candidateResults} />}
     {rank >= 3 && <OrganGhost position={[3.1, 1.15, -1.2]} label="LIVER RISK" color="#ff985d" signal={liverSignal} />}
     {rank >= 3 && <OrganGhost position={[3.35, -1.3, -.7]} label="KIDNEY RISK" color="#b85cff" signal={kidneySignal} />}
     <OrbitControls ref={controls} enablePan={false} minDistance={3.8} maxDistance={10}

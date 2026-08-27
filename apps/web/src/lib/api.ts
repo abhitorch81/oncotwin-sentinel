@@ -1,4 +1,4 @@
-import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, CandidateId, ContextualExplanation, MemoryProof, Mission } from '../types'
+import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, CandidateId, MemoryProof, Mission, MissionCommandResponse } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -33,7 +33,7 @@ export async function askMissionQuestion(
   question: string,
   selectedCandidateId: CandidateId | null,
   simulationHour: number,
-): Promise<ContextualExplanation> {
+): Promise<MissionCommandResponse> {
   const response = await fetch(`${API}/api/nano/missions/${missionId}/commands`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
