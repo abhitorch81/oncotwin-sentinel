@@ -8,10 +8,10 @@ import { EvidenceReceipt } from './components/EvidenceReceipt'
 import { SimulationScrubber } from './components/SimulationScrubber'
 import { TwinScene } from './components/TwinScene'
 import type { RenderQuality } from './components/TwinScene'
-import { approveMission, getAdkTrace, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
+import { approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
 import { buildFallbackTimeline } from './lib/timeline'
-import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, CandidateId, MemoryProof, Mission } from './types'
+import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, CandidateId, ContextualExplanation, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
 import './styles/mission-theatre.css'
@@ -33,7 +33,10 @@ export default function App() {
   const [renderQuality, setRenderQuality] = useState<RenderQuality>('balanced')
   const [reducedMotion, setReducedMotion] = useState(false)
   const [simulationHour, setSimulationHour] = useState(24)
+  const [explanation, setExplanation] = useState<ContextualExplanation | null>(null)
   const closeStream = useRef<(() => void) | null>(null)
+  const runLock = useRef(false)
+  const askLock = useRef(false)
   const approved = mission?.state === 'approved'
 
   const useDeterministicTrace = fallback || adkStatus === 'fallback' || adkStatus === 'disabled'
@@ -71,9 +74,18 @@ export default function App() {
   }, [mission])
   const simulationFrames = useMemo(() => timeline.filter(frame => frame.hour === simulationHour), [simulationHour, timeline])
   const selectedFrame = simulationFrames.find(frame => frame.candidate_id === selectedCandidateId)
+  const effectiveScenePatch = explanation?.scene_patch || scenePatch
   const updatePerformance = useCallback((quality: RenderQuality, reduced: boolean) => {
     setRenderQuality(quality)
     setReducedMotion(reduced)
+  }, [])
+  const selectCandidate = useCallback((candidateId: CandidateId | null) => {
+    setSelectedCandidateId(candidateId)
+    setExplanation(null)
+  }, [])
+  const changeSimulationHour = useCallback((hour: number) => {
+    setSimulationHour(hour)
+    setExplanation(null)
   }, [])
 
   useEffect(() => {
@@ -104,8 +116,10 @@ export default function App() {
   }, [])
 
   const run = async (prompt: string) => {
+    if (runLock.current) return
+    runLock.current = true
     closeStream.current?.()
-    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24)
+    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24); setExplanation(null)
     try {
       const created = await startMission(prompt)
       setMission(created); setFallback(false); window.localStorage.setItem(ACTIVE_MISSION_KEY, created.id)
@@ -118,7 +132,20 @@ export default function App() {
       )
     }
     catch { setMission({ ...demoMission, prompt }); setFallback(true); setAdkStatus('fallback'); window.localStorage.removeItem(ACTIVE_MISSION_KEY) }
-    finally { setRunning(false) }
+    finally { runLock.current = false; setRunning(false) }
+  }
+  const ask = async (question: string) => {
+    if (!mission || askLock.current) return
+    askLock.current = true
+    setRunning(true); setApprovalError(null)
+    try {
+      const response = await askMissionQuestion(mission.id, question, selectedCandidateId, simulationHour)
+      setExplanation(response)
+      setSelectedCandidateId(response.candidate_id)
+      setSimulationHour(response.focus_hour)
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Contextual explanation unavailable')
+    } finally { askLock.current = false; setRunning(false) }
   }
   const approve = async () => {
     if (!mission) return
@@ -146,21 +173,28 @@ export default function App() {
     <section className="stage">
       <div className="viewport">
         <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')}
-          onCandidateSelect={setSelectedCandidateId} selectedCandidateId={selectedCandidateId}
-          sceneAction={sceneAction} scenePatch={scenePatch} onPerformanceChange={updatePerformance}
+          onCandidateSelect={selectCandidate} selectedCandidateId={selectedCandidateId}
+          sceneAction={explanation?.scene_patch.action || sceneAction} scenePatch={explanation?.scene_patch || scenePatch} onPerformanceChange={updatePerformance}
           simulationHour={simulationHour} simulationFrames={simulationFrames} />
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
         <div className="scene-key"><span className="cyan">A · ACCEPTABLE</span><span className="red">B · REJECTED</span><span className="green">C · PREFERRED</span></div>
-        {activeArtifact && <div className={`scene-artifact artifact-${activeArtifact.kind}`}>
+        {explanation ? <div className={`scene-artifact contextual-explanation explanation-${explanation.decision}`}>
+          <button type="button" className="explanation-close" aria-label="Close Safety Steward explanation" onClick={() => setExplanation(null)}>×</button>
+          <small>SAFETY STEWARD · VOICE-READY</small><strong>{explanation.candidate_id} · {explanation.decision}</strong>
+          <span>{explanation.explanation}</span>
+          <div className="explanation-metrics">{explanation.metrics.map(metric => <i className={metric.tone} key={metric.label}>
+            <em>{metric.label}</em><b>{metric.value}{metric.unit || ''}</b></i>)}</div>
+          <code>{explanation.evidence_ids.join(' · ')} · {explanation.source_receipt_sha256_prefix}</code>
+        </div> : activeArtifact && <div className={`scene-artifact artifact-${activeArtifact.kind}`}>
           <small>ACTIVE WORK PRODUCT</small><strong>{activeArtifact.title}</strong>
           <span>{activeArtifact.detail}</span>
         </div>}
-        {scenePatch && <div className={`scene-camera-cue cue-${scenePatch.emphasis}`}>
-          <i /><span>CAMERA LOCK</span><strong>{scenePatch.camera_target.replaceAll('_', ' ')}</strong>
+        {effectiveScenePatch && <div className={`scene-camera-cue cue-${effectiveScenePatch.emphasis}`}>
+          <i /><span>CAMERA LOCK</span><strong>{effectiveScenePatch.camera_target.replaceAll('_', ' ')}</strong>
         </div>}
-        {selectedResult && <div className={`candidate-inspector ${selectedResult.decision}`}>
-          <button type="button" aria-label="Close candidate inspection" onClick={() => setSelectedCandidateId(null)}>×</button>
+        {selectedResult && !explanation && <div className={`candidate-inspector ${selectedResult.decision}`}>
+          <button type="button" className="inspector-close" aria-label="Close candidate inspection" onClick={() => selectCandidate(null)}>×</button>
           <small>SELECTED SYNTHETIC CANDIDATE · {selectedResult.candidate.id}</small>
           <h3>{selectedResult.candidate.name}<em>{selectedResult.decision}</em></h3>
           <div className="inspector-parameters">
@@ -172,11 +206,14 @@ export default function App() {
             <span><i>LIVER · {simulationHour}H</i><b>{Math.round((selectedFrame?.liver_accumulation ?? selectedResult.liver_accumulation) * 100)}%</b></span>
           </div>
           <p>{selectedResult.reason}</p>
+          <button type="button" className="explain-candidate" onClick={() => ask(`Why was candidate ${selectedResult.candidate.id} ${selectedResult.decision}?`)}>
+            ASK SAFETY STEWARD WHY
+          </button>
         </div>}
         {!mission && <button className="investigate" onClick={() => run(demoMission.prompt)}><ScanSearch size={18} /> BEGIN NANO SAFETY MISSION</button>}
-        {mission && presentationComplete && <SimulationScrubber hour={simulationHour} timeline={timeline} onChange={setSimulationHour} />}
+        {mission && presentationComplete && <SimulationScrubber hour={simulationHour} timeline={timeline} onChange={changeSimulationHour} />}
         {mission && presentationComplete && <CandidateComparison results={mission.receipt.results}
-          selectedId={selectedCandidateId} onSelect={setSelectedCandidateId} frames={simulationFrames} hour={simulationHour} />}
+          selectedId={selectedCandidateId} onSelect={selectCandidate} frames={simulationFrames} hour={simulationHour} />}
       </div>
       <div className="right-rail">
         <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} receiptHash={mission?.receipt?.receipt_sha256} />
@@ -185,7 +222,8 @@ export default function App() {
       </div>
     </section>
 
-    <CommandCapsule running={running} onRun={run} />
+    <CommandCapsule running={running} onRun={mission ? ask : run} contextual={Boolean(mission)}
+      suggestion={mission ? selectedCandidateId ? `Why was candidate ${selectedCandidateId} ${selectedResult?.decision || 'classified'}?` : 'Why was candidate B rejected?' : undefined} />
     <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>3D {renderQuality.toUpperCase()}{reducedMotion ? ' · REDUCED MOTION' : ' · ADAPTIVE'}</span></footer>
   </main>
 }

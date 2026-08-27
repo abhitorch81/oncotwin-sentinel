@@ -65,3 +65,19 @@
   production build passed; one launch created one ADK mission; the trace completed all
   four agents with no fallback; Evidence Scout recovered three prior Firestore receipts;
   and the browser console remained free of WebGL errors while the timeline rendered.
+
+## Checkpoint 3B — contextual candidate explanation (pending participant verification)
+
+- Adds a receipt-grounded `/commands` response tied to selected candidate and simulation
+  hour instead of starting another mission.
+- Safety Steward explanations expose policy threshold, breach hour, current/final organ
+  accumulation, evidence IDs, receipt provenance and a future Gemini Live `spoken_text`.
+- A contextual scene patch focuses the exact 3D evidence and updates the scrubber hour.
+- Autonomous approval remains false; browser voice output is intentionally deferred to
+  the Gemini Live checkpoint.
+- Participant verification exposed restored Firestore missions created before Checkpoint
+  3A with no stored timeline. The command service now reconstructs the same deterministic
+  hourly kinetics in memory without rewriting or rehashing the legacy receipt.
+- Visual review exposed the candidate inspector covering the contextual evidence card.
+  The explanation now becomes the single active inspection panel, and its close control
+  restores the selected candidate inspector without clearing scene selection.

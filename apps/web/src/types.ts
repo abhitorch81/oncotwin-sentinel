@@ -128,3 +128,21 @@ export interface ApprovalResponse {
   mission_id: string
   approved_by: string
 }
+
+export interface ContextualExplanation {
+  accepted: boolean
+  mission_id: string
+  agent: 'Safety Steward'
+  channel: 'text' | 'voice' | 'scene'
+  question: string
+  candidate_id: CandidateId
+  decision: 'preferred' | 'acceptable' | 'rejected'
+  explanation: string
+  spoken_text: string
+  focus_hour: number
+  metrics: ArtifactMetric[]
+  evidence_ids: string[]
+  scene_patch: ScenePatch
+  source_receipt_sha256_prefix: string
+  approval_granted: false
+}

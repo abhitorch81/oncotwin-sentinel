@@ -159,6 +159,26 @@ class StartMissionRequest(BaseModel):
 class CommandRequest(BaseModel):
     command: str
     channel: Literal["text", "voice", "scene"] = "text"
+    selected_candidate_id: Literal["A", "B", "C"] | None = None
+    simulation_hour: int = Field(default=24, ge=0, le=24)
+
+
+class ContextualExplanation(BaseModel):
+    accepted: bool = True
+    mission_id: str
+    agent: Literal["Safety Steward"] = "Safety Steward"
+    channel: Literal["text", "voice", "scene"]
+    question: str
+    candidate_id: Literal["A", "B", "C"]
+    decision: Literal["preferred", "acceptable", "rejected"]
+    explanation: str
+    spoken_text: str
+    focus_hour: int = Field(ge=0, le=24)
+    metrics: list[ArtifactMetric]
+    evidence_ids: list[str]
+    scene_patch: ScenePatch
+    source_receipt_sha256_prefix: str
+    approval_granted: bool = False
 
 
 class ApprovalRequest(BaseModel):

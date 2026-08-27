@@ -1,4 +1,4 @@
-import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, MemoryProof, Mission } from '../types'
+import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, CandidateId, ContextualExplanation, MemoryProof, Mission } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -25,6 +25,28 @@ export async function getAdkTrace(missionId: string): Promise<AdkMissionTrace> {
 export async function getMemoryProof(): Promise<MemoryProof> {
   const response = await fetch(`${API}/api/memory/proof`)
   if (!response.ok) throw new Error('Memory proof unavailable')
+  return response.json()
+}
+
+export async function askMissionQuestion(
+  missionId: string,
+  question: string,
+  selectedCandidateId: CandidateId | null,
+  simulationHour: number,
+): Promise<ContextualExplanation> {
+  const response = await fetch(`${API}/api/nano/missions/${missionId}/commands`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      command: question,
+      channel: 'text',
+      selected_candidate_id: selectedCandidateId,
+      simulation_hour: simulationHour,
+    }),
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null
+    throw new Error(payload?.detail || 'Contextual explanation unavailable')
+  }
   return response.json()
 }
 

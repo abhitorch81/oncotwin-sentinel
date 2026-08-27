@@ -71,6 +71,24 @@
         "kidney_accumulation": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
+    "contextualExplanation": {
+      "type": "object",
+      "required": ["mission_id", "agent", "candidate_id", "decision", "explanation", "spoken_text", "focus_hour", "metrics", "evidence_ids", "scene_patch", "source_receipt_sha256_prefix", "approval_granted"],
+      "properties": {
+        "mission_id": { "type": "string", "pattern": "^nano-" },
+        "agent": { "const": "Safety Steward" },
+        "candidate_id": { "enum": ["A", "B", "C"] },
+        "decision": { "enum": ["preferred", "acceptable", "rejected"] },
+        "explanation": { "type": "string" },
+        "spoken_text": { "type": "string" },
+        "focus_hour": { "type": "integer", "minimum": 0, "maximum": 24 },
+        "metrics": { "type": "array", "items": { "$ref": "#/$defs/metric" } },
+        "evidence_ids": { "type": "array", "items": { "type": "string" } },
+        "scene_patch": { "$ref": "#/$defs/scenePatch" },
+        "source_receipt_sha256_prefix": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
+        "approval_granted": { "const": false }
+      }
+    },
     "receipt": {
       "type": "object",
       "required": ["results", "timeline", "receipt_sha256"],

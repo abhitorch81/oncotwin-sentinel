@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .config import get_settings
+from .contextual_explanations import build_contextual_explanation
 from .adk_fleet import adk_runtime_status
 from .adk_runtime import AdkExecutionService, AdkTraceRepository
 from .memory import create_mission_repository
@@ -158,12 +159,20 @@ async def mission_events(mission_id: str) -> StreamingResponse:
 
 @app.post("/api/nano/missions/{mission_id}/commands")
 def command(mission_id: str, request: CommandRequest) -> dict:
-    if not repository.get(mission_id):
+    mission = repository.get(mission_id)
+    if not mission:
         raise HTTPException(404, "Mission not found")
-    normalized = request.command.lower()
-    action = "focus_clone" if "red clone" in normalized else "show_rejection" if "reject" in normalized else "compare_candidates"
-    return {"accepted": True, "channel": request.channel, "scene_action": action,
-            "approval_granted": False}
+    try:
+        explanation = build_contextual_explanation(
+            mission,
+            question=request.command,
+            selected_candidate_id=request.selected_candidate_id,
+            simulation_hour=request.simulation_hour,
+            channel=request.channel,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return explanation.model_dump()
 
 
 @app.post("/api/nano/missions/{mission_id}/request-approval")
