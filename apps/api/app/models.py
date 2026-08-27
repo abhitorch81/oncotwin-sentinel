@@ -44,6 +44,15 @@ class SimulationResult(BaseModel):
     reason: str
 
 
+class SimulationFrame(BaseModel):
+    hour: int = Field(ge=0, le=24)
+    candidate_id: str
+    tumour_penetration: float = Field(ge=0, le=1)
+    tumour_payload_release: float = Field(ge=0, le=1)
+    liver_accumulation: float = Field(ge=0, le=1)
+    kidney_accumulation: float = Field(ge=0, le=1)
+
+
 class ArtifactMetric(BaseModel):
     label: str
     value: str | int | float
@@ -98,6 +107,7 @@ class MissionReceipt(BaseModel):
     prompt: str
     synthetic_research_only: bool = True
     results: list[SimulationResult]
+    timeline: list[SimulationFrame] = Field(default_factory=list)
     preferred_candidate_id: str
     rejected_candidate_ids: list[str]
     evidence_ids: list[str]

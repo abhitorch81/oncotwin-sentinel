@@ -178,9 +178,13 @@ def approval_boundary_event(sequence: int) -> AgentEvent:
     )
 
 
-def event_contract_for_node(node: str, results: list[SimulationResult]) -> AgentEvent | None:
+def event_contract_for_node(
+    node: str,
+    results: list[SimulationResult],
+    memory_count: int = 0,
+) -> AgentEvent | None:
     factories = {
-        "evidence_scout": lambda: evidence_event(0, 0),
+        "evidence_scout": lambda: evidence_event(0, memory_count),
         "nano_designer": lambda: designer_event(0),
         "twin_simulator": lambda: simulator_event(0, results),
         "safety_steward": lambda: safety_event(0, results),

@@ -35,6 +35,23 @@ class AdkRuntimeTests(unittest.TestCase):
         self.assertNotIn("args", str(payload))
         self.assertNotIn("must-not-persist", str(payload))
 
+    def test_evidence_translation_uses_mission_memory_count(self):
+        class EvidenceEvent(_Event):
+            author = "evidence_scout"
+            node_name = "evidence_scout"
+
+            def get_function_calls(self):
+                return [type("Call", (), {"name": "retrieve_synthetic_clone_evidence"})()]
+
+        translated = translate_adk_event(EvidenceEvent(), 1, memory_count=3)
+        payload = translated.model_dump()
+        self.assertIn("recovered 3 prior mission receipts", payload["summary"])
+        prior_receipts = next(
+            metric for metric in payload["artifact"]["metrics"]
+            if metric["label"] == "Prior receipts"
+        )
+        self.assertEqual(prior_receipts["value"], 3)
+
     def test_disabled_trace_is_explicit(self):
         async def scenario():
             repository = AdkTraceRepository()

@@ -1,4 +1,4 @@
-import type { AdkTraceEvent, AdkTraceStatus, ApprovalResponse, MemoryProof, Mission } from '../types'
+import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, MemoryProof, Mission } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -13,6 +13,12 @@ export async function startMission(prompt: string): Promise<Mission> {
 export async function getMission(missionId: string): Promise<Mission> {
   const response = await fetch(`${API}/api/nano/missions/${missionId}`)
   if (!response.ok) throw new Error('Stored mission unavailable')
+  return response.json()
+}
+
+export async function getAdkTrace(missionId: string): Promise<AdkMissionTrace> {
+  const response = await fetch(`${API}/api/nano/missions/${missionId}/adk-trace`)
+  if (!response.ok) throw new Error('ADK trace unavailable')
   return response.json()
 }
 

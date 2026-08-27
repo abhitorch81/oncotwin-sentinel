@@ -100,13 +100,74 @@
 .inspector-parameters b { display: block; margin-top: 4px; color: #dcecff; font: 650 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .candidate-inspector p { margin: 10px 0 0; color: #8596a8; font-size: 8px; line-height: 1.5; }
 
+.simulation-scrubber {
+  position: absolute;
+  z-index: 6;
+  left: 18px;
+  right: 18px;
+  bottom: 160px;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 32px 72px minmax(180px, 1fr) 142px 76px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.simulation-scrubber > button { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid rgba(93, 231, 255, .35); border-radius: 50%; background: rgba(93, 231, 255, .08); color: #65e7ff; cursor: pointer; }
+.timeline-clock { display: flex; align-items: center; gap: 6px; color: #6be8ff; }
+.timeline-clock span { font: 650 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.timeline-clock strong { font-size: 15px; }
+.timeline-track { min-width: 0; }
+.timeline-track input { width: 100%; height: 12px; margin: 0; appearance: none; background: transparent; cursor: ew-resize; }
+.timeline-track input::-webkit-slider-runnable-track { height: 3px; border-radius: 99px; background: linear-gradient(90deg, #59e4ff var(--timeline-progress), rgba(105, 130, 153, .2) var(--timeline-progress)); }
+.timeline-track input::-webkit-slider-thumb { width: 13px; height: 13px; margin-top: -5px; appearance: none; border: 2px solid #dffaff; border-radius: 50%; background: #52ddf7; box-shadow: 0 0 14px rgba(82, 221, 247, .8); }
+.timeline-track input::-moz-range-track { height: 3px; border-radius: 99px; background: rgba(105, 130, 153, .2); }
+.timeline-track input::-moz-range-progress { height: 3px; border-radius: 99px; background: #59e4ff; }
+.timeline-track input::-moz-range-thumb { width: 11px; height: 11px; border: 2px solid #dffaff; border-radius: 50%; background: #52ddf7; }
+.timeline-ticks { display: flex; justify-content: space-between; margin-top: 2px; color: #526477; font: 600 6px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.timeline-breach { display: flex; align-items: center; gap: 6px; color: #b98791; font: 650 7px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; }
+.timeline-breach i { width: 5px; height: 5px; flex: 0 0 auto; border-radius: 50%; background: #ff4568; box-shadow: 0 0 9px rgba(255, 69, 104, .7); }
+.simulation-scrubber > small { color: #68798b; font: 650 6px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .09em; text-align: right; }
+
+.viewport:has(.simulation-scrubber) .scene-key { bottom: 228px; }
+.viewport:has(.simulation-scrubber) .candidate-inspector { bottom: 228px; }
+
+.scene-fallback {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(73, 223, 255, .08), transparent 34%),
+    linear-gradient(145deg, rgba(3, 7, 13, .96), rgba(5, 12, 20, .98));
+  color: #8ba0b4;
+  text-align: center;
+}
+.scene-fallback span { color: #ffb35d; font: 700 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .16em; }
+.scene-fallback strong { margin-top: 12px; color: #edf7ff; font-size: 17px; }
+.scene-fallback p { max-width: 430px; margin: 8px 0 0; font-size: 10px; line-height: 1.55; }
+
+@media (prefers-reduced-motion: reduce) {
+  .candidate, .candidate:hover { transform: none; transition: none; }
+  .scene-artifact, .candidate-inspector { backdrop-filter: none; }
+}
+
 @media (max-width: 1100px) {
   .scene-artifact { top: 62px; right: 16px; width: 34%; }
   .artifact-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .candidate-inspector { right: 14px; bottom: 180px; }
+  .simulation-scrubber { grid-template-columns: 32px 66px minmax(150px, 1fr) 130px; }
+  .simulation-scrubber > small { display: none; }
 }
 
 @media (max-width: 680px) {
-  .candidate-inspector { left: 10px; right: 10px; bottom: 205px; width: auto; }
+  .candidate-inspector { left: 10px; right: 10px; bottom: 258px; width: auto; }
   .inspector-parameters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .simulation-scrubber { left: 8px; right: 8px; bottom: 184px; grid-template-columns: 28px 58px 1fr; gap: 6px; padding: 7px 8px; }
+  .timeline-breach { display: none; }
+  .viewport:has(.simulation-scrubber) .scene-key { bottom: 250px; }
 }

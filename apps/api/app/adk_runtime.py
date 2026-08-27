@@ -47,12 +47,16 @@ def _tool_names(event: Any) -> list[str]:
     return names
 
 
-def translate_adk_event(event: Any, sequence: int) -> AdkTraceEvent:
+def translate_adk_event(event: Any, sequence: int, memory_count: int = 0) -> AdkTraceEvent:
     node = _node_name(event)
     final_check = getattr(event, "is_final_response", None)
     final_response = bool(final_check()) if callable(final_check) else False
     tool_names = _tool_names(event)
-    contract = event_contract_for_node(node or "", _simulation_results())
+    contract = event_contract_for_node(
+        node or "",
+        _simulation_results(),
+        memory_count=memory_count,
+    )
     expose_contract = bool(contract and (tool_names or final_response))
     return AdkTraceEvent(
         sequence=sequence,
@@ -101,7 +105,13 @@ class AdkExecutionService:
         await self.repository.save(trace)
         return trace
 
-    async def run(self, mission_id: str, prompt: str, model: str) -> None:
+    async def run(
+        self,
+        mission_id: str,
+        prompt: str,
+        model: str,
+        memory_count: int = 0,
+    ) -> None:
         """Execute at the integration boundary; failures activate deterministic fallback."""
         trace = AdkMissionTrace(mission_id=mission_id, status="running", model=model,
                                 model_call_executed=True)
@@ -127,7 +137,9 @@ class AdkExecutionService:
                 new_message=message,
             ):
                 sequence += 1
-                trace.events.append(translate_adk_event(event, sequence))
+                trace.events.append(
+                    translate_adk_event(event, sequence, memory_count=memory_count)
+                )
                 await self.repository.save(trace)
             trace.status = "succeeded"
             await self.repository.save(trace)

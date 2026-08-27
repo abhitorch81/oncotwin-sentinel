@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, AudioLines, CircleHelp, Cloud, Database, FlaskConical, ScanSearch } from 'lucide-react'
 import { AgentFlightRecorder } from './components/AgentFlightRecorder'
 import { ApprovalMembrane } from './components/ApprovalMembrane'
 import { CandidateComparison } from './components/CandidateComparison'
 import { CommandCapsule } from './components/CommandCapsule'
 import { EvidenceReceipt } from './components/EvidenceReceipt'
+import { SimulationScrubber } from './components/SimulationScrubber'
 import { TwinScene } from './components/TwinScene'
-import { approveMission, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
+import type { RenderQuality } from './components/TwinScene'
+import { approveMission, getAdkTrace, getMemoryProof, getMission, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
+import { buildFallbackTimeline } from './lib/timeline'
 import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, CandidateId, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
@@ -27,6 +30,9 @@ export default function App() {
   const [adkStatus, setAdkStatus] = useState<AdkTraceStatus>('disabled')
   const [adkEvents, setAdkEvents] = useState<AdkTraceEvent[]>([])
   const [selectedCandidateId, setSelectedCandidateId] = useState<CandidateId | null>(null)
+  const [renderQuality, setRenderQuality] = useState<RenderQuality>('balanced')
+  const [reducedMotion, setReducedMotion] = useState(false)
+  const [simulationHour, setSimulationHour] = useState(24)
   const closeStream = useRef<(() => void) | null>(null)
   const approved = mission?.state === 'approved'
 
@@ -59,6 +65,16 @@ export default function App() {
   const scenePatch = activeSceneEvent?.scene_patch || undefined
   const activeArtifact = [...visibleSceneEvents].reverse().find(event => event.artifact)?.artifact
   const selectedResult = mission?.receipt.results.find(result => result.candidate.id === selectedCandidateId)
+  const timeline = useMemo(() => {
+    if (!mission) return []
+    return mission.receipt.timeline?.length ? mission.receipt.timeline : buildFallbackTimeline(mission.receipt.results)
+  }, [mission])
+  const simulationFrames = useMemo(() => timeline.filter(frame => frame.hour === simulationHour), [simulationHour, timeline])
+  const selectedFrame = simulationFrames.find(frame => frame.candidate_id === selectedCandidateId)
+  const updatePerformance = useCallback((quality: RenderQuality, reduced: boolean) => {
+    setRenderQuality(quality)
+    setReducedMotion(reduced)
+  }, [])
 
   useEffect(() => {
     if (!mission || !useDeterministicTrace || visible >= mission.events.length) return
@@ -72,16 +88,24 @@ export default function App() {
     let active = true
     getMemoryProof().then(proof => active && setMemoryProof(proof)).catch(() => undefined)
     const missionId = window.localStorage.getItem(ACTIVE_MISSION_KEY)
-    if (missionId) getMission(missionId).then(saved => {
+    if (missionId) getMission(missionId).then(async saved => {
       if (!active) return
-      setMission(saved); setVisible(saved.events.length); setAdkStatus('disabled'); setFallback(false); setRestored(true)
+      setMission(saved); setVisible(saved.events.length); setFallback(false); setRestored(true)
+      try {
+        const trace = await getAdkTrace(missionId)
+        if (!active) return
+        setAdkEvents(trace.events)
+        setAdkStatus(trace.status)
+      } catch {
+        if (active) setAdkStatus('disabled')
+      }
     }).catch(() => window.localStorage.removeItem(ACTIVE_MISSION_KEY))
     return () => { active = false }
   }, [])
 
   const run = async (prompt: string) => {
     closeStream.current?.()
-    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null)
+    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24)
     try {
       const created = await startMission(prompt)
       setMission(created); setFallback(false); window.localStorage.setItem(ACTIVE_MISSION_KEY, created.id)
@@ -123,7 +147,8 @@ export default function App() {
       <div className="viewport">
         <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')}
           onCandidateSelect={setSelectedCandidateId} selectedCandidateId={selectedCandidateId}
-          sceneAction={sceneAction} scenePatch={scenePatch} />
+          sceneAction={sceneAction} scenePatch={scenePatch} onPerformanceChange={updatePerformance}
+          simulationHour={simulationHour} simulationFrames={simulationFrames} />
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
         <div className="scene-key"><span className="cyan">A · ACCEPTABLE</span><span className="red">B · REJECTED</span><span className="green">C · PREFERRED</span></div>
@@ -143,14 +168,15 @@ export default function App() {
             <span><i>CHARGE</i><b>{selectedResult.candidate.surface_charge_mv} mV</b></span>
             <span><i>LIGAND</i><b>{Math.round(selectedResult.candidate.ligand_affinity * 100)}%</b></span>
             <span><i>STEALTH</i><b>{Math.round(selectedResult.candidate.stealth_score * 100)}%</b></span>
-            <span><i>TUMOUR</i><b>{Math.round(selectedResult.tumour_payload_release * 100)}%</b></span>
-            <span><i>LIVER</i><b>{Math.round(selectedResult.liver_accumulation * 100)}%</b></span>
+            <span><i>TUMOUR · {simulationHour}H</i><b>{Math.round((selectedFrame?.tumour_payload_release ?? selectedResult.tumour_payload_release) * 100)}%</b></span>
+            <span><i>LIVER · {simulationHour}H</i><b>{Math.round((selectedFrame?.liver_accumulation ?? selectedResult.liver_accumulation) * 100)}%</b></span>
           </div>
           <p>{selectedResult.reason}</p>
         </div>}
         {!mission && <button className="investigate" onClick={() => run(demoMission.prompt)}><ScanSearch size={18} /> BEGIN NANO SAFETY MISSION</button>}
+        {mission && presentationComplete && <SimulationScrubber hour={simulationHour} timeline={timeline} onChange={setSimulationHour} />}
         {mission && presentationComplete && <CandidateComparison results={mission.receipt.results}
-          selectedId={selectedCandidateId} onSelect={setSelectedCandidateId} />}
+          selectedId={selectedCandidateId} onSelect={setSelectedCandidateId} frames={simulationFrames} hour={simulationHour} />}
       </div>
       <div className="right-rail">
         <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} receiptHash={mission?.receipt?.receipt_sha256} />
@@ -160,6 +186,6 @@ export default function App() {
     </section>
 
     <CommandCapsule running={running} onRun={run} />
-    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>60 FPS TARGET</span></footer>
+    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>3D {renderQuality.toUpperCase()}{reducedMotion ? ' · REDUCED MOTION' : ' · ADAPTIVE'}</span></footer>
   </main>
 }

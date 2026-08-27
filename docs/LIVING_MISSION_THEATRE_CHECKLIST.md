@@ -26,12 +26,12 @@ git diff --check
 
 - [x] Choreograph the camera by `camera_target` rather than one static composition.
 - [x] Add clone isolation, candidate forge, distribution paths, quarantine, and approval overlays.
-- [ ] Make candidate A/B/C geometries scientifically distinct and selectable.
-- [ ] Keep stable frame rate and reduced-motion fallback.
+- [x] Make candidate A/B/C geometries scientifically distinct and selectable.
+- [x] Keep stable frame rate and reduced-motion fallback.
 
 ## Checkpoint 3 — direct scientific interaction
 
-- [ ] Add a 0–24 hour simulation scrubber.
+- [x] Add a 0–24 hour simulation scrubber.
 - [ ] Let users inspect candidates and ask why a candidate was rejected.
 - [ ] Support bounded reruns such as “reduce particle size and rerun.”
 - [ ] Store child-run receipts and parent mission lineage in Firestore.

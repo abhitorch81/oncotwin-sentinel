@@ -29,6 +29,16 @@ class NanoResult:
     reason: str
 
 
+@dataclass(frozen=True)
+class NanoSimulationFrame:
+    hour: int
+    candidate_id: str
+    tumour_penetration: float
+    tumour_payload_release: float
+    liver_accumulation: float
+    kidney_accumulation: float
+
+
 DEFAULT_CANDIDATES = (
     NanoCandidate("A", "Aster-48", 48, -8, .72, .80, 9, .77),
     NanoCandidate("B", "Brimstone-92", 92, 22, .88, .31, 3, .38),
@@ -77,6 +87,34 @@ def run_comparison(candidates=DEFAULT_CANDIDATES) -> list[NanoResult]:
             for result in results
         ]
     return results
+
+
+def _normalized_saturation(hour: int, time_constant: float) -> float:
+    if hour <= 0:
+        return 0.0
+    maximum = 1 - math.exp(-24 / time_constant)
+    return (1 - math.exp(-hour / time_constant)) / maximum
+
+
+def build_timeline(results: list[NanoResult]) -> list[NanoSimulationFrame]:
+    """Create deterministic hourly synthetic kinetics ending at each receipt result."""
+    frames: list[NanoSimulationFrame] = []
+    for hour in range(25):
+        for result in results:
+            candidate = result.candidate
+            penetration_curve = _normalized_saturation(hour, 4.8 + candidate.particle_size_nm / 45)
+            release_curve = _normalized_saturation(hour, max(2.5, candidate.release_half_life_hours / math.log(2)))
+            liver_curve = (hour / 24) ** 1.35 if candidate.id == "B" else _normalized_saturation(hour, 8.5)
+            kidney_curve = _normalized_saturation(hour, 6.2 + candidate.particle_size_nm / 55)
+            frames.append(NanoSimulationFrame(
+                hour=hour,
+                candidate_id=candidate.id,
+                tumour_penetration=_clamp(result.tumour_penetration * penetration_curve),
+                tumour_payload_release=_clamp(result.tumour_payload_release * release_curve),
+                liver_accumulation=_clamp(result.liver_accumulation * liver_curve),
+                kidney_accumulation=_clamp(result.kidney_accumulation * kidney_curve),
+            ))
+    return frames
 
 
 def receipt_digest(payload: dict) -> str:

@@ -57,6 +57,16 @@ export interface AdkTraceEvent {
   scene_patch?: ScenePatch | null
 }
 
+export interface AdkMissionTrace {
+  mission_id: string
+  status: AdkTraceStatus
+  workflow: string
+  model: string
+  events: AdkTraceEvent[]
+  fallback_reason?: string | null
+  model_call_executed: boolean
+}
+
 export interface CandidateResult {
   candidate: {
     id: CandidateId; name: string; particle_size_nm: number; surface_charge_mv: number
@@ -72,6 +82,15 @@ export interface CandidateResult {
   reason: string
 }
 
+export interface SimulationFrame {
+  hour: number
+  candidate_id: CandidateId
+  tumour_penetration: number
+  tumour_payload_release: number
+  liver_accumulation: number
+  kidney_accumulation: number
+}
+
 export interface Mission {
   id: string
   prompt: string
@@ -80,6 +99,7 @@ export interface Mission {
   events: AgentEvent[]
   receipt: {
     results: CandidateResult[]
+    timeline?: SimulationFrame[]
     preferred_candidate_id: CandidateId
     rejected_candidate_ids: CandidateId[]
     receipt_sha256: string

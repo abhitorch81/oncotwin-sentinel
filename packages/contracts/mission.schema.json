@@ -9,7 +9,7 @@
     "prompt": { "type": "string", "minLength": 10 },
     "state": { "enum": ["running", "awaiting_human_approval", "approved", "failed"] },
     "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
-    "receipt": { "type": "object" }
+    "receipt": { "$ref": "#/$defs/receipt" }
   },
   "$defs": {
     "event": {
@@ -57,6 +57,27 @@
         "candidate_ids": { "type": "array", "items": { "enum": ["A", "B", "C"] } },
         "simulation_hour": { "type": ["integer", "null"], "minimum": 0, "maximum": 24 },
         "emphasis": { "enum": ["evidence", "design", "delivery", "risk", "authority"] }
+      }
+    },
+    "simulationFrame": {
+      "type": "object",
+      "required": ["hour", "candidate_id", "tumour_penetration", "tumour_payload_release", "liver_accumulation", "kidney_accumulation"],
+      "properties": {
+        "hour": { "type": "integer", "minimum": 0, "maximum": 24 },
+        "candidate_id": { "enum": ["A", "B", "C"] },
+        "tumour_penetration": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tumour_payload_release": { "type": "number", "minimum": 0, "maximum": 1 },
+        "liver_accumulation": { "type": "number", "minimum": 0, "maximum": 1 },
+        "kidney_accumulation": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "required": ["results", "timeline", "receipt_sha256"],
+      "properties": {
+        "results": { "type": "array" },
+        "timeline": { "type": "array", "minItems": 75, "maxItems": 75, "items": { "$ref": "#/$defs/simulationFrame" } },
+        "receipt_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     }
   }

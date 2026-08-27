@@ -84,7 +84,13 @@ async def start_mission(request: StartMissionRequest, background_tasks: Backgrou
     mission = await asyncio.to_thread(service.start, request.prompt)
     await adk_execution.prepare(mission.id, settings.adk_model, settings.adk_enabled)
     if settings.adk_enabled:
-        background_tasks.add_task(adk_execution.run, mission.id, request.prompt, settings.adk_model)
+        background_tasks.add_task(
+            adk_execution.run,
+            mission.id,
+            request.prompt,
+            settings.adk_model,
+            len(mission.receipt.prior_memory_used),
+        )
     return mission.model_dump()
 
 
