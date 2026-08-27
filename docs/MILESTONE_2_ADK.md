@@ -16,7 +16,16 @@ python3 scripts/verify_adk_fleet.py
 curl -s http://127.0.0.1:8000/api/agentic/adk/proof | python3 -m json.tool
 ```
 
-Expected: `installed: true`, four visible agents, coordinator `oncotwin_nano_safety_fleet`, workflow `ADK2GraphWorkflow`, and `model_call_executed: false`.
+Expected: `installed: true`, model `gemini-3.5-flash`, four visible agents, coordinator `oncotwin_nano_safety_fleet`, workflow `ADK2GraphWorkflow`, and `model_call_executed: false`.
+
+The configuration-only eligibility proof is available without a model call:
+
+```bash
+curl -s http://127.0.0.1:8000/api/eligibility/proof | python3 -m json.tool
+```
+
+It must report `requirements_met: true`, Gemini 3.5 Flash through Vertex AI, Google ADK,
+and at least one configured Google Cloud infrastructure service in production.
 
 ## Safety boundary
 

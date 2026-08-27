@@ -9,6 +9,7 @@ API_SERVICE="${API_SERVICE:-oncotwin-agentic-api}"
 WEB_SERVICE="${WEB_SERVICE:-oncotwin-agentic-web}"
 RUNTIME_SA_NAME="${RUNTIME_SA_NAME:-oncotwin-runtime}"
 RELEASE_TAG="${RELEASE_TAG:-$(git rev-parse --short HEAD)}"
+GEMINI_MODEL_ID="${GEMINI_MODEL_ID:-gemini-3.5-flash}"
 RUNTIME_SA="${RUNTIME_SA_NAME}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com"
 
 gcloud config set project "${GOOGLE_CLOUD_PROJECT}"
@@ -66,7 +67,7 @@ gcloud run deploy "${API_SERVICE}" \
   --deploy-health-check \
   --startup-probe="initialDelaySeconds=0,timeoutSeconds=3,periodSeconds=5,failureThreshold=12,httpGet.port=8080,httpGet.path=/api/health" \
   --liveness-probe="initialDelaySeconds=10,timeoutSeconds=3,periodSeconds=30,failureThreshold=3,httpGet.port=8080,httpGet.path=/api/health" \
-  --set-env-vars="APP_ENV=production,DEMO_MODE=false,FIRESTORE_ENABLED=true,FIRESTORE_DATABASE=(default),GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=gemini-2.5-flash,ADK_ENABLED=true,ADK_MODEL=gemini-2.5-flash,ALLOWED_ORIGINS=https://pending.invalid"
+  --set-env-vars="APP_ENV=production,DEMO_MODE=false,FIRESTORE_ENABLED=true,FIRESTORE_DATABASE=(default),GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=${GEMINI_MODEL_ID},ADK_ENABLED=true,ADK_MODEL=${GEMINI_MODEL_ID},ALLOWED_ORIGINS=https://pending.invalid"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" \
   --region="${GCP_REGION}" --format='value(status.url)')"
@@ -102,23 +103,33 @@ API_URL="$(gcloud run services describe "${API_SERVICE}" \
 
 HEALTH_JSON="$(curl --fail --silent --show-error "${API_URL}/api/health")"
 MEMORY_JSON="$(curl --fail --silent --show-error "${API_URL}/api/memory/proof")"
+ELIGIBILITY_JSON="$(curl --fail --silent --show-error "${API_URL}/api/eligibility/proof")"
 curl --fail --silent --show-error "${WEB_URL}/health" >/dev/null
 
-python3 - "${HEALTH_JSON}" "${MEMORY_JSON}" <<'PY'
+python3 - "${HEALTH_JSON}" "${MEMORY_JSON}" "${ELIGIBILITY_JSON}" "${GEMINI_MODEL_ID}" <<'PY'
 import json
 import sys
 
 health = json.loads(sys.argv[1])
 memory = json.loads(sys.argv[2])
+eligibility = json.loads(sys.argv[3])
+expected_model = sys.argv[4]
 
 assert health.get("ok") is True, health
 assert health.get("adk_enabled") is True, health
+assert health.get("gemini_model") == expected_model, health
+assert health.get("gemini_access") == "vertex_ai", health
+assert health.get("minimum_gemini_version_met") is True, health
 assert health.get("memory_backend_configured") == "firestore", health
 assert memory.get("active_backend") == "firestore", memory
 assert memory.get("persistent") is True, memory
 assert memory.get("healthy") is True, memory
 assert memory.get("degraded") is False, memory
-print(json.dumps({"health": health, "memory": memory}, indent=2))
+assert eligibility.get("requirements_met") is True, eligibility
+assert eligibility.get("gemini", {}).get("model") == expected_model, eligibility
+assert eligibility.get("agent_framework", {}).get("name") == "Google ADK", eligibility
+assert eligibility.get("google_cloud_infrastructure", {}).get("configured") is True, eligibility
+print(json.dumps({"health": health, "memory": memory, "eligibility": eligibility}, indent=2))
 PY
 
 echo "API: ${API_URL}"

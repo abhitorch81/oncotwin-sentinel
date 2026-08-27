@@ -138,3 +138,17 @@
   the evidence receipt displayed the parent and child IDs plus the exact 92→70 nm change;
   Firestore reported the child among 37 stored missions; and the authority membrane remained
   paused with `REVIEW & APPROVE`, proving the child inherited no parent approval.
+
+## Checkpoint 3E — Google eligibility upgrade (production verification pending)
+
+- Changes all runtime and Cloud Run deployment defaults from `gemini-2.5-flash` to the
+  stable `gemini-3.5-flash` model through Vertex AI in the global location.
+- Adds a fail-closed semantic version gate so an older or unversioned Gemini alias cannot
+  be presented as satisfying the Gemini 3.5 requirement.
+- Adds `/api/eligibility/proof`, reporting the configured Gemini model/access path, Google
+  ADK version/workflow, and Cloud Run/Firestore infrastructure without triggering a model
+  call or exposing project credentials.
+- Extends deployment verification to fail unless Gemini 3.5+, Vertex AI, Google ADK and at
+  least one Google Cloud infrastructure service are all truthfully configured.
+- Preserves older trace files as historical evidence; only a new production mission may
+  supply the final `model_call_executed: true` Gemini 3.5 proof.

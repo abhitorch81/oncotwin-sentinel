@@ -36,6 +36,7 @@ git diff --check
 - [x] Support bounded reruns such as “reduce particle size and rerun.”
 - [x] Persist privacy-safe ADK traces across Cloud Run instances and scale-to-zero.
 - [x] Store child-run receipts and parent mission lineage in Firestore.
+- [ ] Run and preserve a production ADK trace using Gemini 3.5 Flash through Vertex AI.
 
 ## Checkpoint 4 — Gemini Live multimodal control
 

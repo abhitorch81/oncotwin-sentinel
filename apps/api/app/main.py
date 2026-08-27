@@ -10,6 +10,7 @@ from .config import get_settings
 from .bounded_reruns import build_bounded_rerun_preview, is_bounded_rerun_command
 from .child_reruns import persist_bounded_rerun_child
 from .contextual_explanations import build_contextual_explanation
+from .eligibility import build_eligibility_proof, meets_minimum_gemini_version
 from .adk_fleet import adk_runtime_status
 from .adk_runtime import AdkExecutionService, create_adk_trace_repository
 from .memory import create_mission_repository
@@ -55,6 +56,9 @@ def health() -> dict:
             "edition": "google-native-milestone-1", "mode": "demo" if settings.demo_mode else "live",
             "medical_use": "synthetic_research_only", "human_approval_required": True,
             "adk_enabled": settings.adk_enabled,
+            "gemini_model": settings.adk_model,
+            "gemini_access": "vertex_ai" if settings.google_genai_use_vertexai else "unverified",
+            "minimum_gemini_version_met": meets_minimum_gemini_version(settings.adk_model),
             "memory_backend_configured": repository.configured_backend,
             "adk_trace_backend_configured": adk_trace_repository.configured_backend}
 
@@ -62,7 +66,7 @@ def health() -> dict:
 @app.get("/api/architecture/proof")
 def architecture_proof() -> dict:
     return {
-        "implemented": ["four-agent visible trace", "deterministic nano simulator", "SSE events",
+        "implemented": ["Gemini 3.5 Flash on Vertex AI", "four-agent visible trace", "deterministic nano simulator", "SSE events",
                         "fail-closed approval", "receipt hashing", "3D action contract",
                         "Firestore mission memory", "Firestore ADK traces", "demo fallback"],
         "next_connectors": ["Gemini Live gateway", "synthetic image evidence"],
@@ -82,6 +86,19 @@ def capabilities() -> dict:
 def adk_proof() -> dict:
     """Judge-facing topology proof. This endpoint never triggers a billable model call."""
     return adk_runtime_status(settings.adk_enabled, settings.adk_model)
+
+
+@app.get("/api/eligibility/proof")
+def eligibility_proof() -> dict:
+    """Judge-facing configuration proof; it never triggers a billable model call."""
+    adk_status = adk_runtime_status(settings.adk_enabled, settings.adk_model)
+    return build_eligibility_proof(
+        model=settings.adk_model,
+        vertex_ai_enabled=settings.google_genai_use_vertexai,
+        adk_status=adk_status,
+        firestore_configured=repository.configured_backend == "firestore",
+        cloud_run_target=settings.app_env == "production",
+    )
 
 
 @app.get("/api/nano/candidates")

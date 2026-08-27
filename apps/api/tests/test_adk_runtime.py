@@ -127,7 +127,7 @@ class AdkRuntimeTests(unittest.TestCase):
         async def scenario():
             repository = AdkTraceRepository()
             service = AdkExecutionService(repository)
-            await service.prepare("nano-test", "gemini-2.5-flash", enabled=False)
+            await service.prepare("nano-test", "gemini-3.5-flash", enabled=False)
             return await repository.get("nano-test")
 
         trace = asyncio.run(scenario())
@@ -155,7 +155,7 @@ class AdkRuntimeTests(unittest.TestCase):
             trace = AdkMissionTrace(
                 mission_id="nano-durable",
                 status="succeeded",
-                model="gemini-2.5-flash",
+                model="gemini-3.5-flash",
                 model_call_executed=True,
                 events=[
                     AdkTraceEvent(
