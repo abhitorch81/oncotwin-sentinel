@@ -11,12 +11,16 @@ import type { RenderQuality } from './components/TwinScene'
 import { approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, persistRerunPreview, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
 import { buildFallbackTimeline } from './lib/timeline'
+import { useGeminiLiveVoice } from './hooks/useGeminiLiveVoice'
+import type { VoiceNavigation } from './hooks/useGeminiLiveVoice'
 import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, BoundedRerunPreview, CandidateId, ContextualExplanation, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
 import './styles/mission-theatre.css'
 
 const ACTIVE_MISSION_KEY = 'oncotwin.activeMissionId'
+const APPROVAL_INTENT = /\b(approve|authorize|grant approval|confirm approval)\b/i
+const STOP_INTENT = /^\s*(?:please\s+)?(?:stop(?:\s+(?:speaking|talking|now|please))?|be quiet|cancel(?:\s+speech)?|silence)\s*[.!?]?\s*$/i
 
 export default function App() {
   const [mission, setMission] = useState<Mission | null>(null)
@@ -36,6 +40,9 @@ export default function App() {
   const [explanation, setExplanation] = useState<ContextualExplanation | null>(null)
   const [rerun, setRerun] = useState<BoundedRerunPreview | null>(null)
   const [persistBusy, setPersistBusy] = useState(false)
+  const [voiceAuthorityMessage, setVoiceAuthorityMessage] = useState('')
+  const [voiceNarrationRevision, setVoiceNarrationRevision] = useState(0)
+  const [timelinePlaying, setTimelinePlaying] = useState(false)
   const closeStream = useRef<(() => void) | null>(null)
   const runLock = useRef(false)
   const askLock = useRef(false)
@@ -94,6 +101,17 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (!timelinePlaying) return
+    const timer = window.setInterval(() => {
+      setSimulationHour(hour => {
+        if (hour >= 24) { setTimelinePlaying(false); return 24 }
+        return hour + 1
+      })
+    }, 450)
+    return () => window.clearInterval(timer)
+  }, [timelinePlaying])
+
+  useEffect(() => {
     if (!mission || !useDeterministicTrace || visible >= mission.events.length) return
     const timer = window.setTimeout(() => setVisible(v => v + 1), visible === 0 ? 250 : 1600)
     return () => window.clearTimeout(timer)
@@ -139,12 +157,12 @@ export default function App() {
     catch { setMission({ ...demoMission, prompt }); setFallback(true); setAdkStatus('fallback'); window.localStorage.removeItem(ACTIVE_MISSION_KEY) }
     finally { runLock.current = false; setRunning(false) }
   }
-  const ask = async (question: string) => {
+  const ask = async (question: string, channel: 'text' | 'voice' = 'text') => {
     if (!mission || askLock.current) return
     askLock.current = true
     setRunning(true); setApprovalError(null)
     try {
-      const response = await askMissionQuestion(mission.id, question, selectedCandidateId, simulationHour)
+      const response = await askMissionQuestion(mission.id, question, selectedCandidateId, simulationHour, channel)
       if (response.kind === 'bounded_rerun') {
         setRerun(response)
         setExplanation(null)
@@ -154,6 +172,7 @@ export default function App() {
       }
       setSelectedCandidateId(response.candidate_id)
       setSimulationHour(response.focus_hour)
+      if (channel === 'voice') setVoiceNarrationRevision(revision => revision + 1)
     } catch (error) {
       setApprovalError(error instanceof Error ? error.message : 'Contextual explanation unavailable')
     } finally { askLock.current = false; setRunning(false) }
@@ -188,11 +207,82 @@ export default function App() {
       setApprovalError(error instanceof Error ? error.message : 'Child mission could not be persisted')
     } finally { setPersistBusy(false) }
   }
+  const voiceNarration = explanation?.spoken_text || rerun?.spoken_text || activeSceneEvent?.summary || ''
+  const governedNarration = voiceAuthorityMessage || voiceNarration
+  const handleVoiceNavigation = useCallback((navigation: VoiceNavigation) => {
+    const ids = activeResults.map(result => result.candidate.id as CandidateId)
+    const current = selectedCandidateId ? ids.indexOf(selectedCandidateId) : -1
+    const announce = (message: string) => {
+      setVoiceAuthorityMessage(message)
+      setVoiceNarrationRevision(revision => revision + 1)
+    }
+    if (navigation.action === 'next_candidate' && ids.length) {
+      const target = ids[(current + 1 + ids.length) % ids.length]
+      selectCandidate(target)
+      announce(`Candidate ${target} selected.`)
+    } else if (navigation.action === 'previous_candidate' && ids.length) {
+      const target = ids[(current - 1 + ids.length) % ids.length]
+      selectCandidate(target)
+      announce(`Candidate ${target} selected.`)
+    } else if (navigation.action === 'select_candidate' && navigation.candidate_id) {
+      selectCandidate(navigation.candidate_id)
+      announce(`Candidate ${navigation.candidate_id} selected.`)
+    } else if (navigation.action === 'next_hour') {
+      const hour = Math.min(24, simulationHour + 1)
+      changeSimulationHour(hour)
+      announce(`Simulation moved to T plus ${hour} hours.`)
+    } else if (navigation.action === 'previous_hour') {
+      const hour = Math.max(0, simulationHour - 1)
+      changeSimulationHour(hour)
+      announce(`Simulation moved to T plus ${hour} hours.`)
+    } else if (navigation.action === 'set_hour' && typeof navigation.hour === 'number') {
+      changeSimulationHour(navigation.hour)
+      announce(`Simulation moved to T plus ${navigation.hour} hours.`)
+    } else if (navigation.action === 'play_timeline') {
+      if (simulationHour >= 24) changeSimulationHour(0)
+      setTimelinePlaying(true)
+      announce('Simulation timeline playing.')
+    } else if (navigation.action === 'pause_timeline') {
+      setTimelinePlaying(false)
+      announce('Simulation timeline paused.')
+    } else if (navigation.action === 'show_approval_boundary') {
+      setTimelinePlaying(false)
+      setSimulationHour(24)
+      setSelectedCandidateId(null)
+      announce('Human authority boundary. Voice and agents cannot approve this mission.')
+    }
+  }, [activeResults, changeSimulationHour, selectCandidate, selectedCandidateId, simulationHour])
+  const routeVoiceCommand = (command: string) => {
+    if (APPROVAL_INTENT.test(command)) {
+      const refusal = 'I cannot approve this research mission. Voice and agents have no approval authority. Use the explicit human review and approval control.'
+      setVoiceAuthorityMessage(refusal)
+      setVoiceNarrationRevision(revision => revision + 1)
+      setApprovalError('Voice approval blocked. Explicit human UI confirmation is required.')
+      return
+    }
+    setVoiceAuthorityMessage('')
+    if (mission) void ask(command, 'voice')
+    else void run(command)
+  }
+  const voice = useGeminiLiveVoice({
+    missionId: mission?.id || null,
+    narration: mission ? governedNarration : '',
+    narrationRevision: voiceNarrationRevision,
+    onNavigation: handleVoiceNavigation,
+    onCommand: routeVoiceCommand,
+  })
+  const submitCommand = (command: string) => {
+    if (STOP_INTENT.test(command)) { voice.stopSpeech(); return }
+    if (APPROVAL_INTENT.test(command)) { routeVoiceCommand(command); return }
+    setVoiceAuthorityMessage('')
+    if (mission) void ask(command)
+    else void run(command)
+  }
 
   return <main>
     <header className="topbar">
       <div className="brand"><div className="brand-mark"><Activity size={19} /></div><div><strong>ONCOTWIN <i>SENTINEL</i></strong><small>LIVING EVIDENCE · SYNTHETIC RESEARCH ONLY</small></div></div>
-      <nav><span><Cloud size={13} /> CLOUD RUN TARGET</span><span className={`memory-state ${memoryProof?.healthy ? '' : 'degraded'}`}><Database size={13} /> {memoryProof?.persistent ? 'FIRESTORE LIVE' : 'MEMORY CHECK'}</span><span><AudioLines size={13} /> LIVE VOICE NEXT</span></nav>
+      <nav><span><Cloud size={13} /> CLOUD RUN TARGET</span><span className={`memory-state ${memoryProof?.healthy ? '' : 'degraded'}`}><Database size={13} /> {memoryProof?.persistent ? 'FIRESTORE LIVE' : 'MEMORY CHECK'}</span><span className={`voice-state voice-${voice.state}`}><AudioLines size={13} /> GEMINI 3.5 LIVE INPUT · ADK 3.5 · {voice.state.toUpperCase()}</span></nav>
       <button aria-label="Help"><CircleHelp size={18} /></button>
     </header>
 
@@ -271,8 +361,11 @@ export default function App() {
       </div>
     </section>
 
-    <CommandCapsule running={running} onRun={mission ? ask : run} contextual={Boolean(mission)}
-      suggestion={mission ? selectedCandidateId ? `Why was candidate ${selectedCandidateId} ${selectedResult?.decision || 'classified'}?` : 'Why was candidate B rejected?' : undefined} />
-    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : mission?.lineage ? 'BOUNDED CHILD · LOCAL TRACE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>POLICY nano-safety-v1</span><span>3D {renderQuality.toUpperCase()}{reducedMotion ? ' · REDUCED MOTION' : ' · ADAPTIVE'}</span></footer>
+    <CommandCapsule running={running} onRun={submitCommand} contextual={Boolean(mission)}
+      suggestion={mission ? selectedCandidateId ? `Why was candidate ${selectedCandidateId} ${selectedResult?.decision || 'classified'}?` : 'Why was candidate B rejected?' : undefined}
+      voiceState={voice.state} voiceTranscript={voice.inputTranscript} agentTranscript={voice.outputTranscript}
+      voiceError={voice.errorDetail}
+      onVoiceToggle={voice.state === 'speaking' ? voice.stopSpeech : voice.toggle} />
+    <footer><span>{fallback ? 'DEMO FALLBACK ACTIVE' : mission?.lineage ? 'BOUNDED CHILD · LOCAL TRACE' : `ADK ${adkStatus.toUpperCase()}`}</span><span>{memoryProof?.persistent ? `FIRESTORE · ${memoryProof.mission_count} MISSIONS` : 'MEMORY VERIFYING'}</span><span>VOICE {voice.state.toUpperCase()} · NO AUTHORITY</span><span>POLICY nano-safety-v1</span><span>3D {renderQuality.toUpperCase()}{reducedMotion ? ' · REDUCED MOTION' : ' · ADAPTIVE'}</span></footer>
   </main>
 }
