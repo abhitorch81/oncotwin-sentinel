@@ -104,7 +104,7 @@ sequenceDiagram
   J->>UI: Start R7 safety mission
   UI->>API: POST /missions/start
   API->>F: Store mission + receipt
-  API-->>UI: Mission ID; open SSE trace
+  API-->>UI: Return mission ID and open SSE trace
   API->>ADK: Run governed graph
   ADK->>G: Evidence Scout
   ADK->>G: Nano Designer
@@ -117,7 +117,7 @@ sequenceDiagram
   UI->>API: Context envelope
   API-->>UI: Receipt-grounded explanation
   J->>UI: Attempt voice approval
-  UI-->>J: Refused; human control required
+  UI-->>J: Refuse and require human control
   J->>API: Explicit UI confirmation
   API->>F: Approval audit event
 ```
@@ -313,4 +313,3 @@ docs/                Architecture, checklists and build notes
 ---
 
 Built for a governed multimodal-agent experience: not merely an AI answer, but an inspectable chain from evidence to simulation, policy, memory and human authority.
-
