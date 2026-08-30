@@ -31,7 +31,7 @@ if ! gcloud iam service-accounts describe "${RUNTIME_SA}" >/dev/null 2>&1; then
     --display-name="OncoTwin Cloud Run runtime"
 fi
 
-for role in roles/datastore.user roles/aiplatform.user roles/cloudtexttospeech.user; do
+for role in roles/datastore.user roles/aiplatform.user; do
   gcloud projects add-iam-policy-binding "${GOOGLE_CLOUD_PROJECT}" \
     --member="serviceAccount:${RUNTIME_SA}" \
     --role="${role}" \
