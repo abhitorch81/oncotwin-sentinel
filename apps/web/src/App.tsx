@@ -6,14 +6,18 @@ import { CandidateComparison } from './components/CandidateComparison'
 import { CommandCapsule } from './components/CommandCapsule'
 import { EvidenceReceipt } from './components/EvidenceReceipt'
 import { SimulationScrubber } from './components/SimulationScrubber'
+import { SyntheticEvidenceUpload } from './components/SyntheticEvidenceUpload'
+import { ModalityTrace } from './components/ModalityTrace'
+import { DecisionChain, MissionBrief } from './components/MissionLogic'
+import type { InputModality } from './components/ModalityTrace'
 import { TwinScene } from './components/TwinScene'
 import type { RenderQuality } from './components/TwinScene'
-import { approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, persistRerunPreview, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
+import { analyzeMissionImage, approveMission, askMissionQuestion, getAdkTrace, getMemoryProof, getMission, persistRerunPreview, requestMissionApproval, startMission, streamAdkEvents } from './lib/api'
 import { demoMission } from './lib/demo'
 import { buildFallbackTimeline } from './lib/timeline'
 import { useGeminiLiveVoice } from './hooks/useGeminiLiveVoice'
 import type { VoiceNavigation } from './hooks/useGeminiLiveVoice'
-import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, BoundedRerunPreview, CandidateId, ContextualExplanation, MemoryProof, Mission } from './types'
+import type { AdkTraceEvent, AdkTraceStatus, AgentEvent, AgentName, BoundedRerunPreview, CandidateId, ContextualExplanation, ImageEvidenceAnalysis, MemoryProof, Mission } from './types'
 import './styles.css'
 import './styles/memory-evidence.css'
 import './styles/mission-theatre.css'
@@ -43,6 +47,11 @@ export default function App() {
   const [voiceAuthorityMessage, setVoiceAuthorityMessage] = useState('')
   const [voiceNarrationRevision, setVoiceNarrationRevision] = useState(0)
   const [timelinePlaying, setTimelinePlaying] = useState(false)
+  const [imageEvidence, setImageEvidence] = useState<ImageEvidenceAnalysis | null>(null)
+  const [imageBusy, setImageBusy] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [lastModality, setLastModality] = useState<InputModality>('text')
+  const [replayedEvent, setReplayedEvent] = useState<AgentEvent | null>(null)
   const closeStream = useRef<(() => void) | null>(null)
   const runLock = useRef(false)
   const askLock = useRef(false)
@@ -72,10 +81,10 @@ export default function App() {
     adkStatus === 'succeeded' || (useDeterministicTrace && visible >= (mission?.events.length || 0))
   )
   const visibleSceneEvents = displayEvents.slice(0, displayVisible)
-  const activeSceneEvent = [...visibleSceneEvents].reverse().find(event => event.scene_patch || event.scene_action)
+  const activeSceneEvent = replayedEvent || [...visibleSceneEvents].reverse().find(event => event.scene_patch || event.scene_action)
   const sceneAction = activeSceneEvent?.scene_patch?.action || activeSceneEvent?.scene_action
   const scenePatch = activeSceneEvent?.scene_patch || undefined
-  const activeArtifact = [...visibleSceneEvents].reverse().find(event => event.artifact)?.artifact
+  const activeArtifact = replayedEvent?.artifact || [...visibleSceneEvents].reverse().find(event => event.artifact)?.artifact
   const activeResults = rerun?.results || mission?.receipt.results || []
   const selectedResult = activeResults.find(result => result.candidate.id === selectedCandidateId)
   const timeline = useMemo(() => {
@@ -85,19 +94,29 @@ export default function App() {
   }, [mission, rerun])
   const simulationFrames = useMemo(() => timeline.filter(frame => frame.hour === simulationHour), [simulationHour, timeline])
   const selectedFrame = simulationFrames.find(frame => frame.candidate_id === selectedCandidateId)
-  const effectiveScenePatch = rerun?.scene_patch || explanation?.scene_patch || scenePatch
+  const effectiveScenePatch = imageEvidence?.scene_patch || rerun?.scene_patch || explanation?.scene_patch || scenePatch
   const updatePerformance = useCallback((quality: RenderQuality, reduced: boolean) => {
     setRenderQuality(quality)
     setReducedMotion(reduced)
   }, [])
   const selectCandidate = useCallback((candidateId: CandidateId | null) => {
+    setLastModality('3d')
     setSelectedCandidateId(candidateId)
     setExplanation(null)
     setRerun(null)
   }, [])
   const changeSimulationHour = useCallback((hour: number) => {
+    setLastModality('timeline')
     setSimulationHour(hour)
     setExplanation(null)
+  }, [])
+  const replayAgentWork = useCallback((event: AgentEvent) => {
+    setLastModality('3d')
+    setReplayedEvent(event)
+    setExplanation(null)
+    setRerun(null)
+    if (event.scene_patch?.simulation_hour != null) setSimulationHour(event.scene_patch.simulation_hour)
+    if (event.scene_patch?.candidate_ids?.[0]) setSelectedCandidateId(event.scene_patch.candidate_ids[0])
   }, [])
 
   useEffect(() => {
@@ -142,7 +161,7 @@ export default function App() {
     if (runLock.current) return
     runLock.current = true
     closeStream.current?.()
-    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24); setExplanation(null); setRerun(null)
+    setRunning(true); setVisible(0); setAdkEvents([]); setAdkStatus('queued'); setRestored(false); setApprovalError(null); setSelectedCandidateId(null); setSimulationHour(24); setExplanation(null); setRerun(null); setReplayedEvent(null); setImageEvidence(null); setImageError(null)
     try {
       const created = await startMission(prompt)
       setMission(created); setFallback(false); window.localStorage.setItem(ACTIVE_MISSION_KEY, created.id)
@@ -162,7 +181,7 @@ export default function App() {
     askLock.current = true
     setRunning(true); setApprovalError(null)
     try {
-      const response = await askMissionQuestion(mission.id, question, selectedCandidateId, simulationHour, channel)
+      const response = await askMissionQuestion(mission.id, question, selectedCandidateId, simulationHour, channel, imageEvidence?.evidence_id || null)
       if (response.kind === 'bounded_rerun') {
         setRerun(response)
         setExplanation(null)
@@ -207,7 +226,21 @@ export default function App() {
       setApprovalError(error instanceof Error ? error.message : 'Child mission could not be persisted')
     } finally { setPersistBusy(false) }
   }
-  const voiceNarration = explanation?.spoken_text || rerun?.spoken_text || activeSceneEvent?.summary || ''
+  const analyzeImage = async (file: File) => {
+    if (!mission || imageBusy) return
+    setImageBusy(true); setImageError(null); setLastModality('image')
+    try {
+      const result = await analyzeMissionImage(mission.id, file, selectedCandidateId, simulationHour)
+      setImageEvidence(result)
+      if (result.selected_candidate_id) setSelectedCandidateId(result.selected_candidate_id)
+      setSimulationHour(result.simulation_hour)
+      setVoiceNarrationRevision(revision => revision + 1)
+      setMemoryProof(await getMemoryProof())
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : 'Gemini visual evidence analysis unavailable')
+    } finally { setImageBusy(false) }
+  }
+  const voiceNarration = imageEvidence?.spoken_text || explanation?.spoken_text || rerun?.spoken_text || activeSceneEvent?.summary || ''
   const governedNarration = voiceAuthorityMessage || voiceNarration
   const handleVoiceNavigation = useCallback((navigation: VoiceNavigation) => {
     const ids = activeResults.map(result => result.candidate.id as CandidateId)
@@ -253,6 +286,7 @@ export default function App() {
     }
   }, [activeResults, changeSimulationHour, selectCandidate, selectedCandidateId, simulationHour])
   const routeVoiceCommand = (command: string) => {
+    setLastModality('voice')
     if (APPROVAL_INTENT.test(command)) {
       const refusal = 'I cannot approve this research mission. Voice and agents have no approval authority. Use the explicit human review and approval control.'
       setVoiceAuthorityMessage(refusal)
@@ -274,7 +308,7 @@ export default function App() {
   const submitCommand = (command: string) => {
     if (STOP_INTENT.test(command)) { voice.stopSpeech(); return }
     if (APPROVAL_INTENT.test(command)) { routeVoiceCommand(command); return }
-    setVoiceAuthorityMessage('')
+    setVoiceAuthorityMessage(''); setLastModality('text')
     if (mission) void ask(command)
     else void run(command)
   }
@@ -287,12 +321,13 @@ export default function App() {
     </header>
 
     <div className="truth-boundary"><FlaskConical size={13} /> Synthetic research simulation — not medical advice, diagnosis, or treatment.</div>
+    <MissionBrief />
     <section className="stage">
       <div className="viewport">
         <TwinScene onCloneSelect={() => run('Investigate the resistant red clone.')}
           onCandidateSelect={selectCandidate} selectedCandidateId={selectedCandidateId}
-          sceneAction={rerun?.scene_patch.action || explanation?.scene_patch.action || sceneAction}
-          scenePatch={rerun?.scene_patch || explanation?.scene_patch || scenePatch} onPerformanceChange={updatePerformance}
+          sceneAction={imageEvidence?.scene_patch.action || rerun?.scene_patch.action || explanation?.scene_patch.action || sceneAction}
+          scenePatch={imageEvidence?.scene_patch || rerun?.scene_patch || explanation?.scene_patch || scenePatch} onPerformanceChange={updatePerformance}
           simulationHour={simulationHour} simulationFrames={simulationFrames} candidateResults={activeResults} />
         <div className="scene-heading"><small>NANO SAFETY MISSION / 01</small><h1>Resistant clone<br/><span>under investigation.</span></h1></div>
         <div className="clone-callout"><span /><div><small>SELECTED ANOMALY</small><strong>R7 · RESISTANT CLONE</strong><em>+31% persistence signal</em></div></div>
@@ -355,7 +390,12 @@ export default function App() {
           selectedId={selectedCandidateId} onSelect={selectCandidate} frames={simulationFrames} hour={simulationHour} />}
       </div>
       <div className="right-rail">
-        <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} receiptHash={mission?.receipt?.receipt_sha256} />
+        <AgentFlightRecorder events={displayEvents} visible={displayVisible} approved={approved} traceStatus={fallback ? 'fallback' : adkStatus} receiptHash={mission?.receipt?.receipt_sha256} activeSequence={replayedEvent?.sequence} onReplay={replayAgentWork} />
+        {mission && presentationComplete && <DecisionChain mission={mission} events={displayEvents} visible={displayVisible} activeSequence={replayedEvent?.sequence} onReplay={replayAgentWork} />}
+        {mission && presentationComplete && <SyntheticEvidenceUpload selectedCandidateId={selectedCandidateId}
+          simulationHour={simulationHour} busy={imageBusy} result={imageEvidence} error={imageError} onAnalyze={analyzeImage} />}
+        {mission && <ModalityTrace modality={lastModality} candidateId={selectedCandidateId} hour={simulationHour}
+          evidence={imageEvidence} adkStatus={adkStatus} persistent={Boolean(memoryProof?.persistent && memoryProof?.healthy)} />}
         {mission && presentationComplete && <EvidenceReceipt mission={mission} proof={memoryProof} restored={restored} fallback={fallback} />}
         {mission && presentationComplete && <ApprovalMembrane approved={approved} onApprove={approve} busy={approvalBusy} auditAvailable={!fallback && Boolean(memoryProof?.persistent && memoryProof?.healthy)} error={approvalError} />}
       </div>

@@ -9,7 +9,7 @@ const meta: Record<AgentName, { icon: typeof Binoculars; color: string; code: st
   'Safety Steward': { icon: ShieldCheck, color: '#ffb35d', code: '04' },
 }
 
-export function AgentFlightRecorder({ events, visible, approved, traceStatus, receiptHash }: { events: AgentEvent[]; visible: number; approved: boolean; traceStatus: AdkTraceStatus; receiptHash?: string }) {
+export function AgentFlightRecorder({ events, visible, approved, traceStatus, receiptHash, activeSequence, onReplay }: { events: AgentEvent[]; visible: number; approved: boolean; traceStatus: AdkTraceStatus; receiptHash?: string; activeSequence?: number; onReplay?: (event: AgentEvent) => void }) {
   const latest = new Map<AgentName, AgentEvent>()
   const visibleEvents = events.slice(0, visible)
   visibleEvents.forEach(event => latest.set(event.agent, event))
@@ -28,7 +28,7 @@ export function AgentFlightRecorder({ events, visible, approved, traceStatus, re
           ? 'Human approval recorded. The governed research receipt is complete and auditable.'
           : event?.summary || 'Awaiting upstream evidence handoff.'
         const showArtifact = Boolean(event?.artifact && (activeAgent === name || displayStatus === 'blocked'))
-        return <motion.article key={name} className={`agent-card ${displayStatus} ${showArtifact ? 'active-work' : ''}`}
+        return <motion.article key={name} className={`agent-card ${displayStatus} ${showArtifact ? 'active-work' : ''} ${event?.sequence === activeSequence ? 'replaying' : ''}`}
           initial={{ opacity: .35, x: 12 }} animate={{ opacity: event ? 1 : .42, x: 0 }}>
           <div className="agent-icon" style={{ color: m.color, borderColor: `${m.color}55` }}><Icon size={17} /></div>
           <div><div className="agent-name"><span>{name}</span><small>{isApprovedSteward ? 'APPROVED' : event?.status || 'STANDBY'}</small></div>
@@ -43,6 +43,9 @@ export function AgentFlightRecorder({ events, visible, approved, traceStatus, re
               <span className={metric.tone} key={`${metric.label}-${metric.value}`}><small>{metric.label}</small><b>{metric.value}{metric.unit || ''}</b></span>)}</div>
             {event.artifact.evidence_ids.length ? <code>{event.artifact.evidence_ids.join(' · ')}</code> : null}
           </div> : null}
+          {event && onReplay ? <button type="button" className="replay-work" onClick={() => onReplay(event)}>
+            {event.sequence === activeSequence ? 'VIEWING IN 3D' : 'REPLAY WORK PRODUCT'}
+          </button> : null}
         </motion.article>
       })}
     </div>

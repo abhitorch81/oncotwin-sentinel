@@ -7,6 +7,32 @@ from typing import Any, Protocol
 from .models import Mission
 
 
+def _serialized_receipt_context(receipt: dict[str, Any]) -> dict[str, Any]:
+    digest = receipt.get("receipt_sha256") or ""
+    if len(digest) < 12:
+        return {}
+    results = receipt.get("results") or []
+    return {
+        "receipt_sha256_prefix": digest[:12],
+        "preferred_candidate_id": receipt.get("preferred_candidate_id"),
+        "rejected_candidate_ids": receipt.get("rejected_candidate_ids") or [],
+        "evidence_ids": (receipt.get("evidence_ids") or [])[:5],
+        "candidate_outcomes": [
+            {
+                "candidate_id": (item.get("candidate") or {}).get("id"),
+                "decision": item.get("decision"),
+                "tumour_payload_release": item.get("tumour_payload_release"),
+                "liver_accumulation": item.get("liver_accumulation"),
+            }
+            for item in results[:3]
+        ],
+    }
+
+
+def _receipt_context(mission: Mission) -> dict[str, Any]:
+    return _serialized_receipt_context(mission.receipt.model_dump(mode="json")) if mission.receipt else {}
+
+
 class MissionRepository(Protocol):
     configured_backend: str
 
@@ -15,6 +41,12 @@ class MissionRepository(Protocol):
     def get(self, mission_id: str) -> Mission | None: ...
 
     def relevant_receipts(self, limit: int = 3) -> list[str]: ...
+
+    def recent_receipt_context(self, limit: int = 3) -> list[dict[str, Any]]: ...
+
+    def record_image_evidence(self, evidence: dict[str, Any]) -> None: ...
+
+    def get_image_evidence(self, evidence_id: str) -> dict[str, Any] | None: ...
 
     def record_approval(
         self, mission: Mission, actor: str, decision: str, channel: str
@@ -34,6 +66,7 @@ class InMemoryMissionRepository:
         self._missions: dict[str, Mission] = {}
         self._resume_cursors: dict[str, int] = {}
         self._approval_events: dict[tuple[str, str], dict[str, str]] = {}
+        self._image_evidence: dict[str, dict[str, Any]] = {}
         self._lock = RLock()
 
     def save(self, mission: Mission, resume_cursor: int | None = None) -> Mission:
@@ -59,6 +92,20 @@ class InMemoryMissionRepository:
             ]
             return receipts[-limit:]
 
+    def recent_receipt_context(self, limit: int = 3) -> list[dict[str, Any]]:
+        with self._lock:
+            missions = sorted(self._missions.values(), key=lambda item: item.created_at)
+            return [_receipt_context(item) for item in missions if item.receipt][-limit:]
+
+    def record_image_evidence(self, evidence: dict[str, Any]) -> None:
+        with self._lock:
+            self._image_evidence[evidence["evidence_id"]] = deepcopy(evidence)
+
+    def get_image_evidence(self, evidence_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            evidence = self._image_evidence.get(evidence_id)
+            return deepcopy(evidence) if evidence else None
+
     def record_approval(
         self, mission: Mission, actor: str, decision: str, channel: str
     ) -> Mission:
@@ -83,6 +130,7 @@ class InMemoryMissionRepository:
                 "degraded": False,
                 "mission_count": len(self._missions),
                 "approval_count": len(self._approval_events),
+                "image_evidence_count": len(self._image_evidence),
                 "latest_receipt_sha256_prefix": receipts[-1] if receipts else None,
                 "resume_cursor_supported": True,
             }
@@ -104,6 +152,7 @@ class FirestoreMissionRepository:
         missions_collection: str = "missions",
         receipts_collection: str = "mission_receipts",
         approvals_collection: str = "approval_events",
+        image_evidence_collection: str = "image_evidence",
         client: Any | None = None,
         firestore_module: Any | None = None,
     ) -> None:
@@ -120,6 +169,7 @@ class FirestoreMissionRepository:
         self._missions = client.collection(missions_collection)
         self._receipts = client.collection(receipts_collection)
         self._approvals = client.collection(approvals_collection)
+        self._image_evidence = client.collection(image_evidence_collection)
 
     def _mission_payload(self, mission: Mission, resume_cursor: int) -> dict[str, Any]:
         return {
@@ -185,6 +235,34 @@ class FirestoreMissionRepository:
         ]
         return [receipt for receipt in reversed(newest_first) if receipt]
 
+    def recent_receipt_context(self, limit: int = 3) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(limit, 10))
+        query = self._receipts.order_by(
+            "created_at", direction=self._firestore.Query.DESCENDING
+        ).limit(safe_limit)
+        contexts = []
+        for snapshot in query.stream():
+            payload = snapshot.to_dict() or {}
+            receipt = payload.get("receipt") or {}
+            contexts.append(_serialized_receipt_context(receipt))
+        return list(reversed([item for item in contexts if item]))
+
+    def record_image_evidence(self, evidence: dict[str, Any]) -> None:
+        safe = deepcopy(evidence)
+        safe.pop("raw_bytes", None)
+        safe["created_at"] = self._firestore.SERVER_TIMESTAMP
+        safe["synthetic_research_only"] = True
+        safe["raw_image_persisted"] = False
+        self._image_evidence.document(safe["evidence_id"]).set(safe, merge=True)
+
+    def get_image_evidence(self, evidence_id: str) -> dict[str, Any] | None:
+        snapshot = self._image_evidence.document(evidence_id).get()
+        if not snapshot.exists:
+            return None
+        payload = snapshot.to_dict() or {}
+        payload.pop("created_at", None)
+        return payload
+
     def record_approval(
         self, mission: Mission, actor: str, decision: str, channel: str
     ) -> Mission:
@@ -240,6 +318,7 @@ class FirestoreMissionRepository:
             "degraded": False,
             "mission_count": self._bounded_count(self._missions),
             "approval_count": self._bounded_count(self._approvals),
+            "image_evidence_count": self._bounded_count(self._image_evidence),
             "latest_receipt_sha256_prefix": latest_hash[:12] if latest_hash else None,
             "resume_cursor_supported": True,
         }
@@ -302,6 +381,35 @@ class ResilientMissionRepository:
             self._degrade(error)
             return self._fallback.relevant_receipts(limit)
 
+    def recent_receipt_context(self, limit: int = 3) -> list[dict[str, Any]]:
+        try:
+            contexts = self._primary.recent_receipt_context(limit)
+            self._last_error_type = None
+            return contexts
+        except Exception as error:
+            self._degrade(error)
+            return self._fallback.recent_receipt_context(limit)
+
+    def record_image_evidence(self, evidence: dict[str, Any]) -> None:
+        try:
+            self._primary.record_image_evidence(evidence)
+            self._last_error_type = None
+            self._fallback.record_image_evidence(evidence)
+        except Exception as error:
+            self._degrade(error)
+            self._fallback.record_image_evidence(evidence)
+
+    def get_image_evidence(self, evidence_id: str) -> dict[str, Any] | None:
+        try:
+            evidence = self._primary.get_image_evidence(evidence_id)
+            self._last_error_type = None
+            if evidence:
+                self._fallback.record_image_evidence(evidence)
+                return evidence
+        except Exception as error:
+            self._degrade(error)
+        return self._fallback.get_image_evidence(evidence_id)
+
     def record_approval(
         self, mission: Mission, actor: str, decision: str, channel: str
     ) -> Mission:
@@ -348,7 +456,7 @@ class _UnavailableMissionRepository:
     def _raise(self, *args: Any, **kwargs: Any) -> Any:
         raise self._error
 
-    save = get = relevant_receipts = record_approval = proof = _raise
+    save = get = relevant_receipts = recent_receipt_context = record_image_evidence = get_image_evidence = record_approval = proof = _raise
 
     def close(self) -> None:
         return None

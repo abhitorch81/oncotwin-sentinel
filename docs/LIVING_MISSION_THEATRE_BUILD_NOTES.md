@@ -160,3 +160,79 @@
 - Production mission `nano-2c99e4c2cb` completed the four-agent `ADK2GraphWorkflow` with
   model `gemini-3.5-flash`, 12 privacy-safe events, `model_call_executed: true`, and no
   fallback reason.
+
+## Checkpoint 4A — governed Gemini 3.5 voice
+
+- Keeps `gemini-3.5-flash` on Vertex AI as the only reasoning model. No older or unverified
+  Live model is presented as part of the competition intelligence path.
+- Chrome speech recognition converts a spoken command into the same bounded `channel: voice`
+  request used by the mission interface; it has no direct access to agents or credentials.
+- Chrome speech synthesis renders only validated Gemini 3.5 ADK work products and
+  receipt-grounded Safety Steward explanations. It performs no reasoning of its own.
+- Clicking the microphone during playback cancels speech immediately and begins listening,
+  providing an explicit, predictable interruption path for the judge.
+- Voice has no route to the UI-only approval or child-run persistence confirmations.
+- `/api/live/voice/proof` and deployment assertions report Gemini 3.5 as the qualifying
+  reasoning model, no separate Live reasoning model, no exposed credentials and zero
+  approval/persistence authority.
+- Voice quality repair replaces operating-system speech synthesis with Google Cloud Text-to-
+  Speech using the `en-US-Chirp3-HD-Charon` renderer. Chirp performs presentation only;
+  Gemini 3.5 ADK remains the sole reasoning and agent-work source.
+- `stop`, `stop speaking`, `cancel` and `be quiet` are transport intents that immediately
+  stop playback and never enter the mission command endpoint. Approval-language intents
+  produce a spoken authority refusal and cannot call the approval endpoint.
+- Dependency repair aligns Google ADK 2.8 with its required Google GenAI SDK 2.x range;
+  the earlier `<2` SDK ceiling prevented Cloud Text-to-Speech from being installed.
+## Checkpoint 4B — native-audio duplex rebuild (verification pending)
+
+The browser SpeechRecognition plus complete MP3 design failed participant testing: it
+was slow, scratchy, and could not reliably accept a spoken interruption or follow-up.
+Checkpoint 4B replaces it with one Cloud Run WebSocket, 16 kHz microphone PCM input,
+24 kHz scheduled PCM output, automatic VAD, and immediate client queue cancellation.
+
+The qualifying scientific workflow remains Google ADK with Gemini 3.5 Flash. The current
+supported native-audio model is isolated as an auxiliary duplex I/O and bounded-navigation
+transport. It receives a validated mission-receipt summary, has no approval tool, and
+cannot persist a child run. The checklist remains open until the participant verifies
+voice quality, barge-in, follow-up turns, and every navigation command.
+## Checkpoint 4C — strict Gemini 3.5+ voice pipeline
+
+- Replaced the Gemini 3.1 conversational transport with Gemini 3.5 Live Transcription.
+- Final speech text now uses the same governed ADK 3.5 command path as typed input.
+- Restored Chirp 3 HD speech rendering from validated agent work products only.
+- Added an aggregate proof gate that fails if any configured Gemini model is below 3.5.
+- Gemini API credentials remain server-side and are mounted from Secret Manager on Cloud Run.
+- Preserved immediate local barge-in and explicit voice-approval denial.
+- Participant verification completed: spoken questions, stop/barge-in, follow-up narration,
+  candidate selection and timeline navigation all worked through the governed interface.
+
+## Checkpoint 4D — Gemini 3.5 synthetic image evidence (verification pending)
+
+- Adds PNG/JPEG/WebP upload with a 5 MB ceiling and file-signature validation.
+- Sends raw pixels only to Gemini 3.5 Flash through server-side Vertex AI credentials.
+- Grounds analysis in the selected 3D candidate, simulation hour, current receipt and up to
+  three privacy-safe prior Firestore receipt summaries.
+- Persists only a SHA-256 digest, bounded visual findings, model provenance and receipt links;
+  raw image bytes are never stored.
+- Returns a validated Evidence Scout result, focuses the R7 scene and supplies governed spoken
+  narration. Visual-analysis failure is explicit and has no deterministic AI fallback.
+
+## Checkpoint 4E — multimodal continuity (verification pending)
+
+- Passes the active image evidence identifier into subsequent text and voice commands.
+- Rejects missing, cross-mission or candidate-mismatched image evidence before explanation.
+- Grounds the Safety Steward follow-up in the stored visual pattern, R7 similarity,
+  matrix-resistance signal and confidence while preserving the immutable simulation receipt.
+- Adds a judge-facing trace from input modality through Gemini 3.5/ADK, image evidence,
+  candidate/hour context, 3D scene and Firestore provenance.
+- Gemma was deliberately removed from final scope to keep Gemini 3.5 and Google ADK as the
+  single, unambiguous intelligence path and reduce deployment risk before submission.
+
+## Checkpoint 4F — Agent collaboration and mission impact (verification pending)
+
+- Keeps Gemini 3.5, Google ADK, Firestore, voice, image evidence and the governed approval boundary unchanged.
+- Adds a compact mission brief so the problem, objective, liver ceiling and human authority are visible throughout the experience.
+- Converts real ADK events into an inspectable handoff ribbon; no synthetic chat transcript is introduced.
+- Completed agent cards can replay their existing artifact and typed scene patch in the 3D theatre.
+- Adds a receipt-derived decision chain and impact summary: candidates explored, temporal frames, quarantined risk, preferred candidate, prior receipts and zero autonomous approvals.
+- Participant visual verification and production build are still required before completion.

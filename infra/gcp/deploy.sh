@@ -10,6 +10,7 @@ WEB_SERVICE="${WEB_SERVICE:-oncotwin-agentic-web}"
 RUNTIME_SA_NAME="${RUNTIME_SA_NAME:-oncotwin-runtime}"
 RELEASE_TAG="${RELEASE_TAG:-$(git rev-parse --short HEAD)}"
 GEMINI_MODEL_ID="${GEMINI_MODEL_ID:-gemini-3.5-flash}"
+LIVE_VOICE_MODEL_ID="${LIVE_VOICE_MODEL_ID:-gemini-3.5-transcribe-live-preview}"
 RUNTIME_SA="${RUNTIME_SA_NAME}@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com"
 
 gcloud config set project "${GOOGLE_CLOUD_PROJECT}"
@@ -19,6 +20,7 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   cloudbuild.googleapis.com \
   firestore.googleapis.com \
+  texttospeech.googleapis.com \
   aiplatform.googleapis.com \
   iam.googleapis.com \
   logging.googleapis.com \
@@ -29,7 +31,7 @@ if ! gcloud iam service-accounts describe "${RUNTIME_SA}" >/dev/null 2>&1; then
     --display-name="OncoTwin Cloud Run runtime"
 fi
 
-for role in roles/datastore.user roles/aiplatform.user; do
+for role in roles/datastore.user roles/aiplatform.user roles/cloudtexttospeech.user; do
   gcloud projects add-iam-policy-binding "${GOOGLE_CLOUD_PROJECT}" \
     --member="serviceAccount:${RUNTIME_SA}" \
     --role="${role}" \
@@ -63,11 +65,11 @@ gcloud run deploy "${API_SERVICE}" \
   --concurrency=20 \
   --min-instances=0 \
   --max-instances=3 \
-  --timeout=300s \
+  --timeout=900s \
   --deploy-health-check \
   --startup-probe="initialDelaySeconds=0,timeoutSeconds=3,periodSeconds=5,failureThreshold=12,httpGet.port=8080,httpGet.path=/api/health" \
   --liveness-probe="initialDelaySeconds=10,timeoutSeconds=3,periodSeconds=30,failureThreshold=3,httpGet.port=8080,httpGet.path=/api/health" \
-  --set-env-vars="APP_ENV=production,DEMO_MODE=false,FIRESTORE_ENABLED=true,FIRESTORE_DATABASE=(default),GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=${GEMINI_MODEL_ID},ADK_ENABLED=true,ADK_MODEL=${GEMINI_MODEL_ID},ALLOWED_ORIGINS=https://pending.invalid"
+  --set-env-vars="APP_ENV=production,DEMO_MODE=false,FIRESTORE_ENABLED=true,FIRESTORE_DATABASE=(default),GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=${GEMINI_MODEL_ID},GOVERNED_VOICE_ENABLED=true,LIVE_VOICE_MODEL=${LIVE_VOICE_MODEL_ID},LIVE_VOICE_LOCATION=global,ADK_ENABLED=true,ADK_MODEL=${GEMINI_MODEL_ID},ALLOWED_ORIGINS=https://pending.invalid"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" \
   --region="${GCP_REGION}" --format='value(status.url)')"
@@ -104,20 +106,23 @@ API_URL="$(gcloud run services describe "${API_SERVICE}" \
 HEALTH_JSON="$(curl --fail --silent --show-error "${API_URL}/api/health")"
 MEMORY_JSON="$(curl --fail --silent --show-error "${API_URL}/api/memory/proof")"
 ELIGIBILITY_JSON="$(curl --fail --silent --show-error "${API_URL}/api/eligibility/proof")"
+VOICE_JSON="$(curl --fail --silent --show-error "${API_URL}/api/live/voice/proof")"
 curl --fail --silent --show-error "${WEB_URL}/health" >/dev/null
 
-python3 - "${HEALTH_JSON}" "${MEMORY_JSON}" "${ELIGIBILITY_JSON}" "${GEMINI_MODEL_ID}" <<'PY'
+python3 - "${HEALTH_JSON}" "${MEMORY_JSON}" "${ELIGIBILITY_JSON}" "${VOICE_JSON}" "${GEMINI_MODEL_ID}" <<'PY'
 import json
 import sys
 
 health = json.loads(sys.argv[1])
 memory = json.loads(sys.argv[2])
 eligibility = json.loads(sys.argv[3])
-expected_model = sys.argv[4]
+voice = json.loads(sys.argv[4])
+expected_model = sys.argv[5]
 
 assert health.get("ok") is True, health
 assert health.get("adk_enabled") is True, health
 assert health.get("gemini_model") == expected_model, health
+assert health.get("governed_voice_enabled") is True, health
 assert health.get("gemini_access") == "vertex_ai", health
 assert health.get("minimum_gemini_version_met") is True, health
 assert health.get("memory_backend_configured") == "firestore", health
@@ -129,7 +134,16 @@ assert eligibility.get("requirements_met") is True, eligibility
 assert eligibility.get("gemini", {}).get("model") == expected_model, eligibility
 assert eligibility.get("agent_framework", {}).get("name") == "Google ADK", eligibility
 assert eligibility.get("google_cloud_infrastructure", {}).get("configured") is True, eligibility
-print(json.dumps({"health": health, "memory": memory, "eligibility": eligibility}, indent=2))
+assert voice.get("enabled") is True, voice
+assert voice.get("qualifying_reasoning_model") == expected_model, voice
+assert voice.get("minimum_gemini_version_met") is True, voice
+assert voice.get("transcription_model") == "gemini-3.5-transcribe-live-preview", voice
+assert voice.get("all_gemini_models_meet_minimum_version") is True, voice
+assert voice.get("renderer") == "google_cloud_text_to_speech", voice
+assert voice.get("credentials_exposed") is False, voice
+assert voice.get("voice_can_approve") is False, voice
+assert voice.get("voice_can_persist_child_run") is False, voice
+print(json.dumps({"health": health, "memory": memory, "eligibility": eligibility, "voice": voice}, indent=2))
 PY
 
 echo "API: ${API_URL}"

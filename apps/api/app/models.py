@@ -177,6 +177,11 @@ class CommandRequest(BaseModel):
     channel: Literal["text", "voice", "scene"] = "text"
     selected_candidate_id: Literal["A", "B", "C"] | None = None
     simulation_hour: int = Field(default=24, ge=0, le=24)
+    image_evidence_id: str | None = Field(default=None, pattern=r"^IMG-[A-F0-9]{12}$")
+
+
+class VoiceSynthesisRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
 
 
 class ContextualExplanation(BaseModel):
@@ -195,6 +200,7 @@ class ContextualExplanation(BaseModel):
     evidence_ids: list[str]
     scene_patch: ScenePatch
     source_receipt_sha256_prefix: str
+    image_evidence_id: str | None = None
     approval_granted: bool = False
 
 
@@ -247,6 +253,41 @@ class PersistedChildRun(BaseModel):
     lineage_status: Literal["child_receipt"] = "child_receipt"
     parent_mission_id: str
     child_mission: Mission
+    approval_granted: bool = False
+
+
+class PriorReceiptComparison(BaseModel):
+    receipt_sha256_prefix: str = Field(pattern=r"^[a-f0-9]{12}$")
+    relationship: Literal["consistent", "divergent", "insufficient_signal"]
+    summary: str = Field(min_length=1, max_length=240)
+
+
+class ImageEvidenceAnalysis(BaseModel):
+    kind: Literal["image_evidence_analysis"] = "image_evidence_analysis"
+    mission_id: str
+    evidence_id: str
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    filename: str
+    mime_type: Literal["image/png", "image/jpeg", "image/webp"]
+    size_bytes: int = Field(gt=0, le=5 * 1024 * 1024)
+    model: str
+    model_call_executed: bool = True
+    selected_candidate_id: Literal["A", "B", "C"] | None = None
+    simulation_hour: int = Field(ge=0, le=24)
+    synthetic_pattern: Literal[
+        "diffuse", "clustered", "ring_like", "heterogeneous", "low_signal"
+    ]
+    r7_similarity: float = Field(ge=0, le=1)
+    matrix_resistance_signal: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+    summary: str
+    spoken_text: str
+    observations: list[str] = Field(min_length=1, max_length=5)
+    prior_receipt_comparisons: list[PriorReceiptComparison] = Field(max_length=3)
+    current_receipt_sha256_prefix: str = Field(pattern=r"^[a-f0-9]{12}$")
+    scene_patch: ScenePatch
+    raw_image_persisted: bool = False
+    metadata_persisted: bool = True
     approval_granted: bool = False
 
 

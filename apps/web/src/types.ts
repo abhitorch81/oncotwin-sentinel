@@ -164,6 +164,7 @@ export interface ContextualExplanation {
   evidence_ids: string[]
   scene_patch: ScenePatch
   source_receipt_sha256_prefix: string
+  image_evidence_id?: string | null
   approval_granted: false
 }
 
@@ -205,6 +206,37 @@ export interface PersistedChildRun {
   lineage_status: 'child_receipt'
   parent_mission_id: string
   child_mission: Mission
+  approval_granted: false
+}
+
+export interface ImageEvidenceAnalysis {
+  kind: 'image_evidence_analysis'
+  mission_id: string
+  evidence_id: string
+  sha256: string
+  filename: string
+  mime_type: 'image/png' | 'image/jpeg' | 'image/webp'
+  size_bytes: number
+  model: string
+  model_call_executed: true
+  selected_candidate_id: CandidateId | null
+  simulation_hour: number
+  synthetic_pattern: 'diffuse' | 'clustered' | 'ring_like' | 'heterogeneous' | 'low_signal'
+  r7_similarity: number
+  matrix_resistance_signal: number
+  confidence: number
+  summary: string
+  spoken_text: string
+  observations: string[]
+  prior_receipt_comparisons: Array<{
+    receipt_sha256_prefix: string
+    relationship: 'consistent' | 'divergent' | 'insufficient_signal'
+    summary: string
+  }>
+  current_receipt_sha256_prefix: string
+  scene_patch: ScenePatch
+  raw_image_persisted: false
+  metadata_persisted: true
   approval_granted: false
 }
 

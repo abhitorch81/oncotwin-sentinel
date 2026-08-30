@@ -38,15 +38,21 @@ git diff --check
 - [x] Store child-run receipts and parent mission lineage in Firestore.
 - [x] Run and preserve a production ADK trace using Gemini 3.5 Flash through Vertex AI.
 
-## Checkpoint 4 — Gemini Live multimodal control
+## Checkpoint 4 — Gemini 3.5 multimodal control
 
-- [ ] Add interruptible Gemini Live voice behind the existing safety boundary.
-- [ ] Synchronize spoken explanations with selected 3D objects and agent work products.
+- [x] Provide governed Gemini 3.5 transcription, seamless Chirp narration, stop/barge-in,
+      and repeatable follow-up turns.
+- [x] Synchronize spoken explanations with selected 3D objects and agent work products.
+- [x] Support bounded voice navigation: next/previous candidate, candidate selection,
+      next/previous/set hour, play/pause timeline, and approval-boundary focus.
 - [ ] Support synthetic evidence upload and grounded comparison against prior missions.
-- [ ] Prove voice cannot approve a mission.
+- [x] Prove voice cannot approve a mission.
+- [ ] Checkpoint 4E: verify image-grounded voice/text follow-ups and the visible modality trace.
 
 ## Later mission expansion
 
 After the Nano Safety Mission is polished and reproducible, reuse the theatre contract for
 four to six additional missions. Do not expose more agents; change their tools, artifacts,
 scene patches, and policy envelope per mission.
+- [x] Checkpoint 4C: verify Gemini 3.5 Live transcription, ADK 3.5 response, Chirp playback, barge-in, and voice authority denial.
+- [ ] Checkpoint 4F: expose real ADK handoffs, replayable work products, the receipt decision chain and measurable mission impact.

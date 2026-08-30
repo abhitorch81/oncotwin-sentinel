@@ -66,6 +66,28 @@ class ContextualExplanationTests(unittest.TestCase):
         self.assertIn("LEGACY-RECEIPT-TIMELINE-RECONSTRUCTED-V1", response.evidence_ids)
         self.assertIn("68%", response.explanation)
 
+    def test_followup_is_grounded_in_same_mission_image_evidence(self):
+        response = build_contextual_explanation(
+            self.mission,
+            question="How does this image affect candidate B?",
+            selected_candidate_id="B",
+            simulation_hour=18,
+            channel="voice",
+            image_evidence={
+                "mission_id": self.mission.id,
+                "evidence_id": "IMG-1234567890AB",
+                "selected_candidate_id": "B",
+                "synthetic_pattern": "clustered",
+                "r7_similarity": .82,
+                "matrix_resistance_signal": .71,
+                "confidence": .88,
+            },
+        )
+        self.assertEqual(response.image_evidence_id, "IMG-1234567890AB")
+        self.assertIn("82% R7 similarity", response.explanation)
+        self.assertIn("does not alter", response.explanation)
+        self.assertIn("IMG-1234567890AB", response.evidence_ids)
+
 
 if __name__ == "__main__":
     unittest.main()

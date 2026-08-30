@@ -1,6 +1,19 @@
-import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, BoundedRerunPreview, CandidateId, MemoryProof, Mission, MissionCommandResponse, PersistedChildRun } from '../types'
+import type { AdkMissionTrace, AdkTraceEvent, AdkTraceStatus, ApprovalResponse, BoundedRerunPreview, CandidateId, ImageEvidenceAnalysis, MemoryProof, Mission, MissionCommandResponse, PersistedChildRun } from '../types'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API = API_BASE_URL
+
+export function liveVoiceUrl(missionId: string): string {
+  return `${API_BASE_URL.replace(/^http/, 'ws')}/api/live/voice/${encodeURIComponent(missionId)}`
+}
+
+export async function synthesizeVoice(text: string): Promise<Blob> {
+  const response = await fetch(`${API}/api/voice/synthesize`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }),
+  })
+  if (!response.ok) throw new Error('High-quality voice rendering unavailable')
+  return response.blob()
+}
 
 export async function startMission(prompt: string): Promise<Mission> {
   const response = await fetch(`${API}/api/nano/missions/start`, {
@@ -33,14 +46,17 @@ export async function askMissionQuestion(
   question: string,
   selectedCandidateId: CandidateId | null,
   simulationHour: number,
+  channel: 'text' | 'voice' = 'text',
+  imageEvidenceId: string | null = null,
 ): Promise<MissionCommandResponse> {
   const response = await fetch(`${API}/api/nano/missions/${missionId}/commands`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       command: question,
-      channel: 'text',
+      channel,
       selected_candidate_id: selectedCandidateId,
       simulation_hour: simulationHour,
+      image_evidence_id: imageEvidenceId,
     }),
   })
   if (!response.ok) {
@@ -68,6 +84,26 @@ export async function persistRerunPreview(
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: string } | null
     throw new Error(payload?.detail || 'Child mission could not be persisted')
+  }
+  return response.json()
+}
+
+export async function analyzeMissionImage(
+  missionId: string,
+  file: File,
+  selectedCandidateId: CandidateId | null,
+  simulationHour: number,
+): Promise<ImageEvidenceAnalysis> {
+  const body = new FormData()
+  body.append('file', file)
+  if (selectedCandidateId) body.append('selected_candidate_id', selectedCandidateId)
+  body.append('simulation_hour', String(simulationHour))
+  const response = await fetch(`${API}/api/nano/missions/${missionId}/evidence/images/analyze`, {
+    method: 'POST', body,
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null
+    throw new Error(payload?.detail || 'Gemini visual evidence analysis unavailable')
   }
   return response.json()
 }

@@ -53,6 +53,7 @@ def build_contextual_explanation(
     selected_candidate_id: str | None,
     simulation_hour: int,
     channel: str,
+    image_evidence: dict | None = None,
 ) -> ContextualExplanation:
     """Explain a decision using only the selected mission receipt and policy evidence."""
     if mission.receipt is None:
@@ -131,6 +132,25 @@ def build_contextual_explanation(
             emphasis="delivery",
         )
 
+    image_evidence_id = None
+    if image_evidence:
+        image_evidence_id = image_evidence.get("evidence_id")
+        if image_evidence.get("mission_id") != mission.id:
+            raise ValueError("Image evidence does not belong to this mission")
+        image_candidate = image_evidence.get("selected_candidate_id")
+        if image_candidate and image_candidate != candidate_id:
+            raise ValueError("Image evidence is bound to a different candidate")
+        similarity = _percent(float(image_evidence.get("r7_similarity", 0)))
+        matrix_signal = _percent(float(image_evidence.get("matrix_resistance_signal", 0)))
+        confidence = _percent(float(image_evidence.get("confidence", 0)))
+        pattern = str(image_evidence.get("synthetic_pattern", "unknown")).replace("_", " ")
+        explanation += (
+            f" Image evidence {image_evidence_id} adds a {pattern} synthetic pattern with "
+            f"{similarity}% R7 similarity and {matrix_signal}% matrix-resistance signal. "
+            "It provides bounded supporting context but does not alter the stored simulation receipt or approval boundary."
+        )
+        metrics.append(ArtifactMetric(label="Image confidence", value=confidence, unit="%", tone="neutral"))
+        evidence_ids.append(image_evidence_id)
     spoken_text = f"Safety Steward. {explanation} Approval still requires a human."
     return ContextualExplanation(
         mission_id=mission.id,
@@ -145,4 +165,5 @@ def build_contextual_explanation(
         evidence_ids=evidence_ids,
         scene_patch=patch,
         source_receipt_sha256_prefix=mission.receipt.receipt_sha256[:12],
+        image_evidence_id=image_evidence_id,
     )

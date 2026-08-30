@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     google_cloud_location: str = "global"
     google_genai_use_vertexai: bool = True
     gemini_model: str = "gemini-3.5-flash"
+    governed_voice_enabled: bool = True
+    live_voice_model: str = "gemini-3.5-transcribe-live-preview"
+    live_voice_location: str = "global"
     adk_enabled: bool = False
     adk_model: str = "gemini-3.5-flash"
     allowed_origins: str = "http://localhost:5173"

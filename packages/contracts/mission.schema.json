@@ -165,6 +165,31 @@
         "approval_granted": { "const": false }
       }
     },
+    "imageEvidenceAnalysis": {
+      "type": "object",
+      "required": ["kind", "mission_id", "evidence_id", "sha256", "model", "model_call_executed", "simulation_hour", "synthetic_pattern", "r7_similarity", "matrix_resistance_signal", "confidence", "summary", "spoken_text", "observations", "prior_receipt_comparisons", "scene_patch", "raw_image_persisted", "metadata_persisted", "approval_granted"],
+      "properties": {
+        "kind": { "const": "image_evidence_analysis" },
+        "mission_id": { "type": "string", "pattern": "^nano-" },
+        "evidence_id": { "type": "string", "pattern": "^IMG-[A-F0-9]{12}$" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "model": { "type": "string", "pattern": "^gemini-3\\.[5-9]" },
+        "model_call_executed": { "const": true },
+        "simulation_hour": { "type": "integer", "minimum": 0, "maximum": 24 },
+        "synthetic_pattern": { "enum": ["diffuse", "clustered", "ring_like", "heterogeneous", "low_signal"] },
+        "r7_similarity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "matrix_resistance_signal": { "type": "number", "minimum": 0, "maximum": 1 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "summary": { "type": "string" },
+        "spoken_text": { "type": "string" },
+        "observations": { "type": "array", "minItems": 1, "maxItems": 5, "items": { "type": "string" } },
+        "prior_receipt_comparisons": { "type": "array", "maxItems": 3 },
+        "scene_patch": { "$ref": "#/$defs/scenePatch" },
+        "raw_image_persisted": { "const": false },
+        "metadata_persisted": { "const": true },
+        "approval_granted": { "const": false }
+      }
+    },
     "receipt": {
       "type": "object",
       "required": ["results", "timeline", "receipt_sha256"],

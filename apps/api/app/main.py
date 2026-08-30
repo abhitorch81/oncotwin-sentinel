@@ -2,9 +2,9 @@ import asyncio
 from contextlib import asynccontextmanager
 import json
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from .config import get_settings
 from .bounded_reruns import build_bounded_rerun_preview, is_bounded_rerun_command
@@ -14,10 +14,14 @@ from .eligibility import build_eligibility_proof, meets_minimum_gemini_version
 from .adk_fleet import adk_runtime_status
 from .adk_runtime import AdkExecutionService, create_adk_trace_repository
 from .memory import create_mission_repository
+from .image_evidence import analyze_synthetic_image
 from .mission_service import MissionService
-from .models import ApprovalRequest, CommandRequest, PersistRerunRequest, StartMissionRequest
+from .live_voice import voice_capability_proof
+from .live_voice_gateway import run_live_voice_session
+from .models import ApprovalRequest, CommandRequest, PersistRerunRequest, StartMissionRequest, VoiceSynthesisRequest
 from .nano_simulator import DEFAULT_CANDIDATES
 from .security import ApprovalDenied, validate_approval
+from .speech_service import VOICE_NAME, synthesize_agent_speech
 
 settings = get_settings()
 repository = create_mission_repository(
@@ -57,6 +61,12 @@ def health() -> dict:
             "medical_use": "synthetic_research_only", "human_approval_required": True,
             "adk_enabled": settings.adk_enabled,
             "gemini_model": settings.adk_model,
+            "governed_voice_enabled": settings.governed_voice_enabled,
+            "live_transcription_model": settings.live_voice_model,
+            "all_gemini_models_meet_minimum_version": all(
+                meets_minimum_gemini_version(model)
+                for model in (settings.adk_model, settings.live_voice_model)
+            ),
             "gemini_access": "vertex_ai" if settings.google_genai_use_vertexai else "unverified",
             "minimum_gemini_version_met": meets_minimum_gemini_version(settings.adk_model),
             "memory_backend_configured": repository.configured_backend,
@@ -66,10 +76,10 @@ def health() -> dict:
 @app.get("/api/architecture/proof")
 def architecture_proof() -> dict:
     return {
-        "implemented": ["Gemini 3.5 Flash on Vertex AI", "four-agent visible trace", "deterministic nano simulator", "SSE events",
+        "implemented": ["Gemini 3.5 Flash on Vertex AI", "Gemini 3.5 synthetic image evidence", "governed agent narration", "four-agent visible trace", "deterministic nano simulator", "SSE events",
                         "fail-closed approval", "receipt hashing", "3D action contract",
                         "Firestore mission memory", "Firestore ADK traces", "demo fallback"],
-        "next_connectors": ["Gemini Live gateway", "synthetic image evidence"],
+        "next_connectors": [],
         "deployment_target": ["Cloud Run", "Secret Manager", "Cloud Logging"],
         "cloud_scope": "google_cloud_only",
     }
@@ -78,8 +88,52 @@ def architecture_proof() -> dict:
 @app.get("/api/agentic/capabilities")
 def capabilities() -> dict:
     return {"visible_agents": ["Evidence Scout", "Nano Designer", "Twin Simulator", "Safety Steward"],
-            "inputs": ["text", "voice_gateway_planned", "synthetic_image_planned", "3d_selection"],
+            "inputs": ["text", "governed_voice", "synthetic_image", "3d_selection", "simulation_time"],
             "approval": {"voice_can_request": True, "voice_can_approve": False, "ui_confirmation_required": True}}
+
+
+@app.get("/api/live/voice/proof")
+def live_voice_proof() -> dict:
+    """Judge-facing capability proof; opening this endpoint never starts a Live session."""
+    return {**voice_capability_proof(
+        enabled=settings.governed_voice_enabled,
+        reasoning_model=settings.adk_model,
+        transcription_model=settings.live_voice_model,
+    ), "renderer": "google_cloud_text_to_speech", "voice": VOICE_NAME}
+
+
+@app.websocket("/api/live/voice/{mission_id}")
+async def live_voice_session(websocket: WebSocket, mission_id: str) -> None:
+    origin = websocket.headers.get("origin")
+    if origin and origin not in settings.origins:
+        await websocket.close(code=1008)
+        return
+    mission = await asyncio.to_thread(repository.get, mission_id)
+    if not mission or not settings.governed_voice_enabled:
+        await websocket.close(code=1008)
+        return
+    await run_live_voice_session(
+        websocket,
+        mission=mission,
+        project_id=settings.google_cloud_project,
+        location=settings.live_voice_location,
+        model=settings.live_voice_model,
+    )
+
+
+@app.post("/api/voice/synthesize")
+async def synthesize_voice(request: VoiceSynthesisRequest) -> Response:
+    if not settings.governed_voice_enabled:
+        raise HTTPException(503, "Governed voice is disabled")
+    try:
+        audio = await asyncio.to_thread(synthesize_agent_speech, request.text)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return Response(
+        content=audio,
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-store", "X-Voice-Renderer": VOICE_NAME},
+    )
 
 
 @app.get("/api/agentic/adk/proof")
@@ -168,6 +222,52 @@ def get_mission(mission_id: str) -> dict:
     return mission.model_dump()
 
 
+@app.post("/api/nano/missions/{mission_id}/evidence/images/analyze")
+async def analyze_image_evidence(
+    mission_id: str,
+    file: UploadFile = File(...),
+    selected_candidate_id: str | None = Form(default=None),
+    simulation_hour: int = Form(default=24),
+) -> dict:
+    mission = await asyncio.to_thread(repository.get, mission_id)
+    if not mission:
+        raise HTTPException(404, "Mission not found")
+    if selected_candidate_id not in {None, "A", "B", "C"}:
+        raise HTTPException(400, "Selected candidate must be A, B, or C")
+    if not 0 <= simulation_hour <= 24:
+        raise HTTPException(400, "Simulation hour must be between 0 and 24")
+    data = await file.read(5 * 1024 * 1024 + 1)
+    try:
+        recent_context = await asyncio.to_thread(repository.recent_receipt_context, 4)
+        current_prefix = mission.receipt.receipt_sha256[:12] if mission.receipt else ""
+        prior_context = [
+            item for item in recent_context
+            if item.get("receipt_sha256_prefix") != current_prefix
+        ][-3:]
+        result = await asyncio.to_thread(
+            analyze_synthetic_image,
+            data=data,
+            filename=file.filename,
+            mime_type=file.content_type or "",
+            mission=mission,
+            selected_candidate_id=selected_candidate_id,
+            simulation_hour=simulation_hour,
+            prior_receipts=prior_context,
+            project_id=settings.google_cloud_project,
+            location=settings.google_cloud_location,
+            model=settings.adk_model,
+        )
+        await asyncio.to_thread(
+            repository.record_image_evidence,
+            result.model_dump(mode="json"),
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(502, f"Gemini visual evidence analysis failed ({type(exc).__name__})") from exc
+    return result.model_dump(mode="json")
+
+
 @app.get("/api/nano/missions/{mission_id}/events")
 async def mission_events(mission_id: str) -> StreamingResponse:
     mission = repository.get(mission_id)
@@ -197,12 +297,18 @@ def command(mission_id: str, request: CommandRequest) -> dict:
                 channel=request.channel,
             )
             return preview.model_dump()
+        image_evidence = None
+        if request.image_evidence_id:
+            image_evidence = repository.get_image_evidence(request.image_evidence_id)
+            if not image_evidence:
+                raise ValueError("Image evidence is unavailable for this mission")
         explanation = build_contextual_explanation(
             mission,
             question=request.command,
             selected_candidate_id=request.selected_candidate_id,
             simulation_hour=request.simulation_hour,
             channel=request.channel,
+            image_evidence=image_evidence,
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -254,7 +360,7 @@ def memory_proof() -> dict:
     return {
         **repository.proof(),
         "stores": ["missions", "mission_receipts", "approval_events", "resume_cursor",
-                   "adk_traces"],
+                   "adk_traces", "image_evidence"],
         "adk_trace_backend": adk_trace_repository.configured_backend,
         "credentials_exposed": False,
         "standalone_memory_ui": False,
